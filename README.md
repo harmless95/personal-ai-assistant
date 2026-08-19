@@ -31,27 +31,27 @@ Implemented in this repository right now:
 
 ## Local Setup
 
-### 1. Подготовка окружения
+### 1. Prepare environment
 
-Убедитесь, что у вас установлен Python 3.12+.
+Make sure Python 3.12+ is installed.
 
 ```bash
-# Установка зависимостей
+# Install dependencies
 uv sync --group dev --no-install-project
 
-# Для Windows:
+# Windows:
 .venv\Scripts\activate
-# Для macOS/Linux:
+# macOS/Linux:
 source .venv/bin/activate
 ```
 
-Создайте файл `.env` в корневом каталоге проекта (можно скопировать из `.env.example`):
+Create a `.env` file in the project root (copy from `.env.example`):
 
 ```bash
 cp .env.example .env
 ```
 
-Пример переменных окружения:
+Example environment variables:
 
 ```env
 ENVIRONMENT=development
@@ -61,37 +61,37 @@ HOST__HOST=127.0.0.1
 HOST__PORT=8000
 ```
 
-Переменные читаются через `pydantic-settings` с вложенным delimiter `__` (см. `app/config.py`).
+Variables are loaded via `pydantic-settings` with nested delimiter `__` (see `app/config.py`).
 
-### 2. Запуск приложения
+### 2. Run the application
 
-Из корня репозитория:
+From the repository root:
 
 ```bash
 python -m app.main
 ```
 
-После запуска API будет доступно по адресу: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+After startup, the API is available at: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
-Документация Swagger: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+Swagger docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 Health-check endpoint: `GET /api/v1/utils/health-check`
 
 ---
 
-## Тестирование
+## Testing
 
-Для запуска тестов используется **pytest**.
+Tests are run with **pytest**.
 
 ```bash
-# Запуск всех тестов
+# Run all tests
 uv run pytest
 
-# Запуск с подробным выводом (verbose)
+# Verbose output
 uv run pytest -v
 ```
 
-Или через helper script:
+Or use the helper script:
 
 ```bash
 bash ./scripts/test.sh
@@ -99,13 +99,13 @@ bash ./scripts/test.sh
 
 ---
 
-## Проверки качества кода
+## Code Quality Checks
 
 ```bash
 # Lint + type-check
 bash ./scripts/lint.sh
 
-# Отдельно
+# Run separately
 uv run ruff check .
 uv run mypy .
 ```
