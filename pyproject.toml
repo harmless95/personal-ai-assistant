@@ -4,12 +4,20 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi>=0.141.1",
+    "pydantic-settings>=2.15.0",
+    "uvicorn>=0.52.4",
+]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "mypy>=1.20.2",
     "pre-commit>=4.3.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.15.12",
 ]
 
@@ -22,9 +30,24 @@ select = ["E", "F", "I"]
 fixable = ["ALL"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["personal_ai_assistant"]
+known-first-party = ["app"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=app --cov-report=term-missing"
+testpaths = ["app"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true

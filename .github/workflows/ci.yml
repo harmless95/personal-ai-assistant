@@ -34,3 +34,47 @@ jobs:
       - name: Run Lint Script
         run: bash ./scripts/lint.sh
 
+  test:
+    name: Run test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-groups --no-install-project
+
+      - name: Run Test Script
+        run: bash ./scripts/test.sh
+
+      - name: Pytest coverage comment
+        if: github.event_name == 'pull_request'
+        id: coverage-comment
+        uses: MishaKav/pytest-coverage-comment@v1
+        with:
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml
+          title: "Test Coverage Report"
+          badge-title: "Coverage"
+          create-new-comment: false
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            pytest-coverage.txt
+            pytest.xml
+            coverage.json
+            htmlcov/
+          retention-days: 7
+
