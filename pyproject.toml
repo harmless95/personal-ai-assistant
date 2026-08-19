@@ -9,6 +9,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "mypy>=1.20.2",
+    "pre-commit>=4.3.0",
     "ruff>=0.15.12",
 ]
 
@@ -27,10 +28,3 @@ known-first-party = ["personal_ai_assistant"]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
-
-[project.scripts]
-personal-ai-assistant = "personal_ai_assistant:main"
-
-[build-system]
-requires = ["uv_build>=0.12.5,<0.13.0"]
-build-backend = "uv_build"
