@@ -1,7 +1,21 @@
 from datetime import date
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class QuestionCategory(StrEnum):
+    RISK = "RISK"
+    FOCUS = "FOCUS"
+    ENERGY = "ENERGY"
+    LEARNING = "LEARNING"
+    ACTION = "ACTION"
+
+
+class CheckinStatus(StrEnum):
+    ASKED = "asked"
+    ANSWERED = "answered"
 
 
 class RequestState(BaseModel):
@@ -20,8 +34,8 @@ class AskCheckinRequest(BaseModel):
 
 
 class SelectedQuestion(BaseModel):
-    question_id: str
-    category: str
+    question_id: UUID
+    category: QuestionCategory
     text: str
     order: int
 
@@ -33,8 +47,8 @@ class AskCheckinResponse(BaseModel):
 
 
 class QuestionPoolItem(BaseModel):
-    id: str
-    category: str
+    id: UUID
+    category: QuestionCategory
     text: str
     weight: float
     trigger_tags: list[str]
@@ -42,12 +56,13 @@ class QuestionPoolItem(BaseModel):
 
 
 class AnswerItem(BaseModel):
-    question_id: str
+    question_id: UUID
     answer_text: str = Field(min_length=1)
 
 
 class AnswerCheckinRequest(BaseModel):
     checkin_id: UUID
+    user_id: UUID
     answers: list[AnswerItem] = Field(min_length=5, max_length=5)
 
 
