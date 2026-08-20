@@ -1,0 +1,82 @@
+[
+  {
+    "id": "q_risk_01",
+    "category": "RISK",
+    "text": "What is putting the most pressure on you today?",
+    "weight": 1.0,
+    "trigger_tags": ["stress", "blocker"],
+    "cooldown_days": 3
+  },
+  {
+    "id": "q_risk_02",
+    "category": "RISK",
+    "text": "What risk are you currently ignoring?",
+    "weight": 0.8,
+    "trigger_tags": ["stress"],
+    "cooldown_days": 5
+  },
+  {
+    "id": "q_focus_01",
+    "category": "FOCUS",
+    "text": "Which one priority task was not completed?",
+    "weight": 1.0,
+    "trigger_tags": ["plan_miss"],
+    "cooldown_days": 3
+  },
+  {
+    "id": "q_focus_02",
+    "category": "FOCUS",
+    "text": "What distracted you from your main priorities?",
+    "weight": 0.9,
+    "trigger_tags": ["plan_miss", "blocker"],
+    "cooldown_days": 4
+  },
+  {
+    "id": "q_energy_01",
+    "category": "ENERGY",
+    "text": "What drained your energy the most in the last 2-3 hours?",
+    "weight": 1.0,
+    "trigger_tags": ["low_energy"],
+    "cooldown_days": 3
+  },
+  {
+    "id": "q_energy_02",
+    "category": "ENERGY",
+    "text": "When did you last take a real break today?",
+    "weight": 0.7,
+    "trigger_tags": ["low_energy"],
+    "cooldown_days": 7
+  },
+  {
+    "id": "q_learning_01",
+    "category": "LEARNING",
+    "text": "What new thing did you try today, even if imperfect?",
+    "weight": 0.8,
+    "trigger_tags": ["learning_mid"],
+    "cooldown_days": 3
+  },
+  {
+    "id": "q_learning_02",
+    "category": "LEARNING",
+    "text": "Which skill did not work out today?",
+    "weight": 1.0,
+    "trigger_tags": ["learning_low"],
+    "cooldown_days": 4
+  },
+  {
+    "id": "q_action_01",
+    "category": "ACTION",
+    "text": "What is one small step you can still take today?",
+    "weight": 1.0,
+    "trigger_tags": ["low_energy", "plan_miss"],
+    "cooldown_days": 2
+  },
+  {
+    "id": "q_action_02",
+    "category": "ACTION",
+    "text": "What can you postpone without real damage?",
+    "weight": 0.8,
+    "trigger_tags": ["stress", "plan_miss"],
+    "cooldown_days": 5
+  }
+]
