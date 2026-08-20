@@ -23,7 +23,7 @@ class DailyQuestion(Base):
         nullable=False,
         index=True,
     )
-    question_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    question_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     category: Mapped[str] = mapped_column(String(32), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False)

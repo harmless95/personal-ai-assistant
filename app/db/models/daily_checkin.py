@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy import Date, DateTime, Integer, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,7 +21,13 @@ class DailyCheckin(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    checkin_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    checkin_date: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+        default=date.today,
+        server_default=text("CURRENT_DATE"),
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="asked")
 
     stress_level: Mapped[int] = mapped_column(Integer, nullable=False)
