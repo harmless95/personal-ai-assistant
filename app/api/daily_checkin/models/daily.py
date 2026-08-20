@@ -15,7 +15,7 @@ class RequestState(BaseModel):
 
 
 class AskCheckinRequest(BaseModel):
-    user_id: int
+    user_id: UUID
     state: RequestState
 
 

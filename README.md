@@ -82,7 +82,13 @@ From the repository root (uses `.env`):
 docker compose -f Docker-compose.yml up -d db
 ```
 
-### 3. Run the application
+### 3. Run database migrations
+
+```bash
+alembic -c app/alembic.ini upgrade head
+```
+
+### 4. Run the application
 
 From the repository root:
 

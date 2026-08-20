@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from app.api.daily_checkin.models.daily import AskCheckinRequest, RequestState
 from app.api.daily_checkin.services.service_daily import CATEGORIES, DailyCheckinService
 
@@ -5,7 +7,7 @@ from app.api.daily_checkin.services.service_daily import CATEGORIES, DailyChecki
 async def test_question_handler_returns_one_question_per_category() -> None:
     service = DailyCheckinService()
     request = AskCheckinRequest(
-        user_id=1,
+        user_id=uuid4(),
         state=RequestState(
             stress_level=4,
             energy_level=2,

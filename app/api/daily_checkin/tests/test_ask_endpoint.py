@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -7,7 +9,7 @@ client_test = TestClient(app=app)
 
 def test_ask_daily_checkin_endpoint() -> None:
     payload = {
-        "user_id": 1,
+        "user_id": str(uuid4()),
         "state": {
             "stress_level": 4,
             "energy_level": 2,
@@ -42,7 +44,7 @@ def test_ask_daily_checkin_endpoint() -> None:
 
 def test_ask_daily_checkin_validation_error() -> None:
     payload = {
-        "user_id": 1,
+        "user_id": str(uuid4()),
         "state": {
             "stress_level": 9,
             "energy_level": 2,
