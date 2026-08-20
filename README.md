@@ -13,6 +13,8 @@ Project goal: build an adaptive daily Q/A service that:
 
 - Python 3.12+
 - FastAPI + Pydantic Settings
+- SQLAlchemy 2.x (async) + asyncpg
+- PostgreSQL
 - `uv` for dependency management
 - Ruff + Mypy for code quality
 - Pytest + pytest-asyncio + pytest-cov
@@ -23,7 +25,9 @@ Project goal: build an adaptive daily Q/A service that:
 
 Implemented in this repository right now:
 - base FastAPI app with health-check endpoint;
+- daily check-in `ask` / `answer` endpoints;
 - centralized settings via `pydantic-settings`;
+- async DB session layer for Postgres;
 - lint + type-check setup (`ruff`, `mypy`);
 - test tooling (`pytest`, `pytest-asyncio`, `pytest-cov`);
 - pre-commit hooks;
@@ -59,11 +63,26 @@ API_PREFIX_V1=/api/v1
 
 HOST__HOST=127.0.0.1
 HOST__PORT=8000
+
+DB__POSTGRES_USER=postgres
+DB__POSTGRES_PASSWORD=secret
+DB__POSTGRES_HOST=localhost
+DB__POSTGRES_PORT=5432
+DB__POSTGRES_DB=personal_ai_assistant
 ```
 
-Variables are loaded via `pydantic-settings` with nested delimiter `__` (see `app/config.py`).
+Variables are loaded via `pydantic-settings` with nested delimiter `__` (see `app/config.py`).  
+`DB__POSTGRES_*` values must match the PostgreSQL container credentials.
 
-### 2. Run the application
+### 2. Start PostgreSQL
+
+From the repository root (uses `.env`):
+
+```bash
+docker compose -f Docker-compose.yml up -d db
+```
+
+### 3. Run the application
 
 From the repository root:
 
@@ -76,6 +95,10 @@ After startup, the API is available at: [http://127.0.0.1:8000](http://127.0.0.1
 Swagger docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 Health-check endpoint: `GET /api/v1/utils/health-check`
+
+Daily check-in:
+- `POST /api/v1/daily/checkin/ask/`
+- `POST /api/v1/daily/checkin/answer/`
 
 ---
 
