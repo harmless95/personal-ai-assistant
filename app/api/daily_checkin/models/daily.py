@@ -39,3 +39,32 @@ class QuestionPoolItem(BaseModel):
     weight: float
     trigger_tags: list[str]
     cooldown_days: int
+
+
+class AnswerItem(BaseModel):
+    question_id: str
+    answer_text: str = Field(min_length=1)
+
+
+class AnswerCheckinRequest(BaseModel):
+    checkin_id: UUID
+    answers: list[AnswerItem] = Field(min_length=5, max_length=5)
+
+
+class DayInsights(BaseModel):
+    top_risk_or_blocker: str
+    top_strength: str
+    learning_gap: str
+
+
+class RecommendedActions(BaseModel):
+    today_action: str
+    two_checkpoints: list[str]
+
+
+class AnswerCheckinResponse(BaseModel):
+    checkin_id: UUID
+    answers_received: bool
+    day_summary: str
+    insights: DayInsights
+    recommended_actions: RecommendedActions
