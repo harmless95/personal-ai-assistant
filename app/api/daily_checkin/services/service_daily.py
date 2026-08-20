@@ -1,29 +1,11 @@
-import json
 from datetime import date
-from pathlib import Path
 from uuid import uuid4
 
-from app.api.daily_checkin.models.daily import (
-    AskCheckinRequest,
-    AskCheckinResponse,
-    QuestionPoolItem,
-    SelectedQuestion,
-)
+from app.api.daily_checkin.models.daily import AskCheckinRequest, AskCheckinResponse, SelectedQuestion
 from app.api.daily_checkin.utils.check_tag import state_to_tags
+from app.api.daily_checkin.utils.questions import load_questions, score_question
 
-QUESTIONS_PATH = Path(__file__).resolve().parents[1] / "data" / "questions.json"
 CATEGORIES = ["RISK", "FOCUS", "ENERGY", "LEARNING", "ACTION"]
-
-
-def load_questions() -> list[QuestionPoolItem]:
-    with QUESTIONS_PATH.open(encoding="utf-8") as f:
-        raw_questions: list[object] = json.load(f)
-    return [QuestionPoolItem.model_validate(item) for item in raw_questions]
-
-
-def score_question(question: QuestionPoolItem, tags: set[str]) -> float:
-    matches = len(set(question.trigger_tags) & tags)
-    return question.weight * matches
 
 
 class DailyCheckinService:
