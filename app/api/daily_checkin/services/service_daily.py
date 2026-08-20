@@ -102,6 +102,8 @@ class DailyCheckinService:
             self.repository.get_checkin_by_id(
                 checkin_id=question_data.checkin_id,
                 with_questions=True,
+                with_answers=True,
+                with_artifact=True,
             )
         )
         if checkin is None:
