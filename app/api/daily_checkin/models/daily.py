@@ -83,3 +83,21 @@ class AnswerCheckinResponse(BaseModel):
     day_summary: str
     insights: DayInsights
     recommended_actions: RecommendedActions
+
+
+class HistoryItem(BaseModel):
+    checkin_id: UUID
+    date: date
+    status: CheckinStatus
+
+
+class HistoryResponse(BaseModel):
+    items: list[HistoryItem]
+
+
+class ArtifactResponse(BaseModel):
+    checkin_id: UUID
+    date: date
+    day_summary: str
+    insights: DayInsights
+    recommended_actions: RecommendedActions

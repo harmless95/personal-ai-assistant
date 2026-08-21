@@ -34,6 +34,7 @@ def _make_repository(
     create_return: DailyCheckin | None = None,
     get_return: DailyCheckin | None = None,
     existing_today: DailyCheckin | None = None,
+    history_return: list[DailyCheckin] | None = None,
     pool: list[QuestionPool] | None = None,
     usage: dict[Any, date] | None = None,
 ) -> Any:
@@ -45,6 +46,7 @@ def _make_repository(
     repository.get_today_checkin = AsyncMock(return_value=existing_today)
     repository.create_checkin = AsyncMock(return_value=create_return)
     repository.get_checkin_by_id = AsyncMock(return_value=get_return)
+    repository.list_checkins_by_user = AsyncMock(return_value=history_return or [])
     repository.save_checkin = AsyncMock(return_value=get_return)
     return repository
 
@@ -221,3 +223,73 @@ async def test_answer_handler_rejects_mismatched_question_ids(
         await service.answer_handler(question_data=request)
 
     assert exc_info.value.status_code == 422
+
+
+async def test_history_handler_returns_items(
+    selected_questions: list[SelectedQuestion],
+) -> None:
+    user_id = uuid4()
+    checkin = _asked_checkin(uuid4(), selected_questions, user_id=user_id)
+    service = DailyCheckinService(repository=_make_repository(history_return=[checkin]))
+
+    response = await service.history_handler(user_id=user_id, limit=30, offset=0)
+
+    assert len(response.items) == 1
+    assert response.items[0].checkin_id == checkin.id
+    assert response.items[0].status == CheckinStatus.ASKED
+    cast(AsyncMock, service.repository.list_checkins_by_user).assert_awaited_once_with(
+        user_id=user_id,
+        limit=30,
+        offset=0,
+    )
+
+
+async def test_artifact_handler_returns_summary(
+    selected_questions: list[SelectedQuestion],
+) -> None:
+    from app.db import DailyArtifact
+
+    checkin_id = uuid4()
+    user_id = uuid4()
+    checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
+    checkin.status = CheckinStatus.ANSWERED
+    checkin.artifact = DailyArtifact(
+        structured_summary_json={
+            "day_summary": "Done",
+            "insights": {
+                "top_risk_or_blocker": "Meetings",
+                "top_strength": "Learning",
+                "learning_gap": "Learning",
+            },
+            "recommended_actions": {
+                "today_action": "Ship",
+                "two_checkpoints": ["A", "B"],
+            },
+        }
+    )
+    service = DailyCheckinService(repository=_make_repository(get_return=checkin))
+
+    response = await service.artifact_handler(checkin_id=checkin_id, user_id=user_id)
+
+    assert response.checkin_id == checkin_id
+    assert response.day_summary == "Done"
+    assert response.insights.top_risk_or_blocker == "Meetings"
+    assert response.recommended_actions.today_action == "Ship"
+
+
+async def test_artifact_handler_missing_artifact(
+    selected_questions: list[SelectedQuestion],
+) -> None:
+    checkin_id = uuid4()
+    user_id = uuid4()
+    checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
+    checkin.artifact = None
+    service = DailyCheckinService(repository=_make_repository(get_return=checkin))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.artifact_handler(checkin_id=checkin_id, user_id=user_id)
+
+    assert exc_info.value.status_code == 404
+    detail = exc_info.value.detail
+    assert isinstance(detail, dict)
+    assert detail["code"] == "artifact_not_found"

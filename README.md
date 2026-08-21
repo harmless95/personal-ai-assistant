@@ -25,7 +25,7 @@ Project goal: build an adaptive daily Q/A service that:
 
 Implemented in this repository right now:
 - base FastAPI app with health-check endpoint;
-- daily check-in `ask` / `answer` endpoints;
+- daily check-in `ask` / `answer` / `history` / `artifact` endpoints;
 - centralized settings via `pydantic-settings`;
 - async DB session layer for Postgres;
 - lint + type-check setup (`ruff`, `mypy`);
@@ -105,6 +105,8 @@ Health-check endpoint: `GET /api/v1/utils/health-check`
 Daily check-in:
 - `POST /api/v1/daily/checkin/ask/`
 - `POST /api/v1/daily/checkin/answer/`
+- `GET /api/v1/daily/checkin/history/?user_id=...`
+- `GET /api/v1/daily/checkin/{checkin_id}/artifact/?user_id=...`
 
 ---
 

@@ -2,7 +2,16 @@ from collections.abc import Sequence
 from typing import Any
 from uuid import UUID
 
-from app.api.daily_checkin.models.daily import AnswerItem, CheckinStatus, RequestState, SelectedQuestion
+from app.api.daily_checkin.models.daily import (
+    AnswerItem,
+    ArtifactResponse,
+    CheckinStatus,
+    DayInsights,
+    HistoryItem,
+    RecommendedActions,
+    RequestState,
+    SelectedQuestion,
+)
 from app.db import DailyArtifact, DailyCheckin, DailyQuestion, QuestionAnswer
 
 
@@ -52,3 +61,25 @@ def answers_match_questions(
     expected = {question.question_id for question in questions}
     received = {answer.question_id for answer in answers}
     return expected == received
+
+
+def to_history_item(checkin: DailyCheckin) -> HistoryItem:
+    return HistoryItem(
+        checkin_id=checkin.id,
+        date=checkin.checkin_date,
+        status=CheckinStatus(checkin.status),
+    )
+
+
+def to_artifact_response(checkin: DailyCheckin) -> ArtifactResponse:
+    if checkin.artifact is None:
+        raise ValueError("checkin has no artifact")
+
+    summary = checkin.artifact.structured_summary_json
+    return ArtifactResponse(
+        checkin_id=checkin.id,
+        date=checkin.checkin_date,
+        day_summary=summary["day_summary"],
+        insights=DayInsights.model_validate(summary["insights"]),
+        recommended_actions=RecommendedActions.model_validate(summary["recommended_actions"]),
+    )

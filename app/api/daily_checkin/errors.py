@@ -5,6 +5,11 @@ from fastapi import HTTPException, status
 
 class DailyCheckinErrors:
     CHECKIN_NOT_FOUND = ("checkin_not_found", "Daily check-in not found", status.HTTP_404_NOT_FOUND)
+    ARTIFACT_NOT_FOUND = (
+        "artifact_not_found",
+        "Daily check-in artifact not found",
+        status.HTTP_404_NOT_FOUND,
+    )
     CHECKIN_FORBIDDEN = (
         "checkin_forbidden",
         "Daily check-in does not belong to this user",

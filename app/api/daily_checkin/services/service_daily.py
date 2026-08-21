@@ -1,5 +1,6 @@
 from collections.abc import Awaitable
 from typing import NoReturn, TypeVar
+from uuid import UUID
 
 from app.api.daily_checkin.data.daily_checkin_repository import DailyCheckinRepository
 from app.api.daily_checkin.data.errors import (
@@ -14,15 +15,19 @@ from app.api.daily_checkin.errors import DailyCheckinErrors, raise_error
 from app.api.daily_checkin.models.daily import (
     AnswerCheckinRequest,
     AnswerCheckinResponse,
+    ArtifactResponse,
     AskCheckinRequest,
     AskCheckinResponse,
     CheckinStatus,
+    HistoryResponse,
 )
 from app.api.daily_checkin.utils.check_tag import state_to_tags
 from app.api.daily_checkin.utils.checkin import (
     answers_match_questions,
     attach_answers_and_artifact,
     build_asked_checkin,
+    to_artifact_response,
+    to_history_item,
 )
 from app.api.daily_checkin.utils.questions import (
     blocked_by_cooldown,
@@ -131,6 +136,42 @@ class DailyCheckinService:
         )
         await self._db(self.repository.save_checkin(checkin=checkin))
         return response
+
+    async def history_handler(
+        self,
+        *,
+        user_id: UUID,
+        limit: int,
+        offset: int,
+    ) -> HistoryResponse:
+        rows = await self._db(
+            self.repository.list_checkins_by_user(
+                user_id=user_id,
+                limit=limit,
+                offset=offset,
+            )
+        )
+        return HistoryResponse(items=[to_history_item(row) for row in rows])
+
+    async def artifact_handler(
+        self,
+        *,
+        checkin_id: UUID,
+        user_id: UUID,
+    ) -> ArtifactResponse:
+        checkin = await self._db(
+            self.repository.get_checkin_by_id(
+                checkin_id=checkin_id,
+                with_artifact=True,
+            )
+        )
+        if checkin is None:
+            raise_error(DailyCheckinErrors.CHECKIN_NOT_FOUND)
+        if checkin.user_id != user_id:
+            raise_error(DailyCheckinErrors.CHECKIN_FORBIDDEN)
+        if checkin.artifact is None:
+            raise_error(DailyCheckinErrors.ARTIFACT_NOT_FOUND)
+        return to_artifact_response(checkin)
 
     def _ask_response_from_checkin(self, checkin: DailyCheckin) -> AskCheckinResponse:
         selected = sorted(

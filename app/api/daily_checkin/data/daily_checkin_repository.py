@@ -111,6 +111,24 @@ class DailyCheckinRepository:
         return result.scalar_one_or_none()
 
     @handle_db_errors
+    async def list_checkins_by_user(
+        self,
+        user_id: UUID,
+        *,
+        limit: int,
+        offset: int,
+    ) -> Sequence[DailyCheckin]:
+        stmt = (
+            select(DailyCheckin)
+            .where(DailyCheckin.user_id == user_id)
+            .order_by(DailyCheckin.checkin_date.desc(), DailyCheckin.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.__session.execute(stmt)
+        return result.scalars().all()
+
+    @handle_db_errors
     async def save_checkin(self, checkin: DailyCheckin) -> DailyCheckin:
         await self.__session.flush()
         await self.__session.refresh(checkin, attribute_names=["status", "answers", "artifact"])
