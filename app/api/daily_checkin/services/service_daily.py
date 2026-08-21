@@ -1,8 +1,8 @@
 from collections.abc import Awaitable
+from logging import getLogger
 from typing import NoReturn, TypeVar
 from uuid import UUID
 
-from app.api.daily_checkin.clients.day_summary import DaySummaryClient
 from app.api.daily_checkin.data.daily_checkin_repository import DailyCheckinRepository
 from app.api.daily_checkin.data.errors import (
     DatabaseError,
@@ -25,7 +25,7 @@ from app.api.daily_checkin.models.daily import (
 from app.api.daily_checkin.utils.check_tag import state_to_tags
 from app.api.daily_checkin.utils.checkin import (
     answers_match_questions,
-    attach_answers_and_artifact,
+    attach_answers,
     build_asked_checkin,
     to_artifact_response,
     to_history_item,
@@ -37,10 +37,13 @@ from app.api.daily_checkin.utils.questions import (
     to_selected_question,
 )
 from app.api.daily_checkin.utils.summary import (
+    build_answer_response,
     map_answers_by_category,
-    structured_summary_from_response,
 )
 from app.db import DailyCheckin
+from app.tasks.enqueue import enqueue_day_summary
+
+logger = getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -54,9 +57,8 @@ _DB_ERRORS = (
 
 
 class DailyCheckinService:
-    def __init__(self, repository: DailyCheckinRepository, summary_client: DaySummaryClient):
+    def __init__(self, repository: DailyCheckinRepository):
         self.repository = repository
-        self.summary_client = summary_client
 
     async def question_handler(
         self,
@@ -135,19 +137,17 @@ class DailyCheckinService:
             questions=checkin.questions,
             answers=question_data.answers,
         )
-        response = await self.summary_client.build(
+        attach_answers(checkin, answers=question_data.answers)
+        await self._db(self.repository.save_checkin(checkin=checkin))
+
+        enqueued = await enqueue_day_summary(str(checkin.id))
+        if not enqueued:
+            logger.warning("day_summary_not_enqueued checkin_id=%s", checkin.id)
+
+        return build_answer_response(
             checkin_id=question_data.checkin_id,
-            questions=checkin.questions,
             answers_by_category=answers_by_category,
         )
-
-        attach_answers_and_artifact(
-            checkin,
-            answers=question_data.answers,
-            structured_summary=structured_summary_from_response(response),
-        )
-        await self._db(self.repository.save_checkin(checkin=checkin))
-        return response
 
     async def history_handler(
         self,

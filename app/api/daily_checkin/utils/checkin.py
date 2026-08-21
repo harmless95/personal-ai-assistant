@@ -41,17 +41,33 @@ def build_asked_checkin(
     )
 
 
+def attach_answers(
+    checkin: DailyCheckin,
+    *,
+    answers: Sequence[AnswerItem],
+) -> None:
+    checkin.status = CheckinStatus.ANSWERED
+    checkin.answers = [
+        QuestionAnswer(question_id=answer.question_id, answer_text=answer.answer_text) for answer in answers
+    ]
+
+
+def attach_artifact(
+    checkin: DailyCheckin,
+    *,
+    structured_summary: dict[str, Any],
+) -> None:
+    checkin.artifact = DailyArtifact(structured_summary_json=structured_summary)
+
+
 def attach_answers_and_artifact(
     checkin: DailyCheckin,
     *,
     answers: Sequence[AnswerItem],
     structured_summary: dict[str, Any],
 ) -> None:
-    checkin.status = CheckinStatus.ANSWERED
-    checkin.answers = [
-        QuestionAnswer(question_id=answer.question_id, answer_text=answer.answer_text) for answer in answers
-    ]
-    checkin.artifact = DailyArtifact(structured_summary_json=structured_summary)
+    attach_answers(checkin, answers=answers)
+    attach_artifact(checkin, structured_summary=structured_summary)
 
 
 def answers_match_questions(

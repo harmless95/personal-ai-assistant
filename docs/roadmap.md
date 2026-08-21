@@ -9,8 +9,8 @@ This document tracks planned work that is not implemented yet.
 - Repository layer and Postgres persistence for check-ins, answers, and artifacts.
 - Structured response schemas for day summary / artifact output.
 - Auth (`register` / `login` / JWT access+refresh / `me` / `logout`) wired into daily check-in.
-- Docker image + Compose services for `db` / `migrate` / `backend`.
-- LLM day summary on `/answer` (OpenAI JSON) with template fallback.
+- LLM day summary on `/answer` enqueued via Taskiq; worker writes artifact (template fallback).
+- Docker image + Compose services for `db` / `redis` / `migrate` / `backend` / `worker`.
 
 ## Next Steps
 
@@ -23,5 +23,4 @@ This document tracks planned work that is not implemented yet.
 ## Environment Expansion (Planned)
 
 Future `.env.example` sections will be added when corresponding features are implemented:
-- Redis/Task queue settings
 - RAG/index settings

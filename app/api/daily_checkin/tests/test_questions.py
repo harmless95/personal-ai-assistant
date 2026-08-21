@@ -52,9 +52,7 @@ def test_select_questions_picks_best_per_category() -> None:
 
 
 def test_select_questions_returns_none_when_category_missing() -> None:
-    incomplete_pool = [
-        to_question_pool_item(row) for row in DEFAULT_POOL if row.category != QuestionCategory.ACTION
-    ]
+    incomplete_pool = [to_question_pool_item(row) for row in DEFAULT_POOL if row.category != QuestionCategory.ACTION]
     assert select_questions(pool=incomplete_pool, tags={"stress"}) is None
 
 

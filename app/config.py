@@ -1,5 +1,6 @@
 from enum import StrEnum
 from pathlib import Path
+from urllib.parse import quote
 
 from pydantic import BaseModel, PostgresDsn, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -73,6 +74,36 @@ class OpenAIConfig(BaseModel):
     enabled: bool = True
 
 
+class RedisConfig(BaseModel):
+    url: SecretStr | None = None
+    host: str = "localhost"
+    port: int = 6379
+    user: str | None = None
+    password: SecretStr | None = None
+    socket_timeout: int = 10
+    socket_connect_timeout: int = 5
+    retry_on_timeout: bool = True
+    health_check_interval: int = 30
+
+    @computed_field
+    def connection_url(self) -> SecretStr:
+        if self.url is not None:
+            return self.url
+        if self.password is None:
+            return SecretStr(f"redis://{self.host}:{self.port}/0")
+        auth_user = quote(self.user or "", safe="")
+        password = quote(self.password.get_secret_value(), safe="")
+        return SecretStr(f"redis://{auth_user}:{password}@{self.host}:{self.port}/0")
+
+
+class TaskiqConfig(BaseModel):
+    queue_name: str = "taskiq_queue"
+    max_connection_pool_size: int = 20
+    default_retry_count: int = 3
+    day_summary_max_retries: int = 3
+    day_summary_retry_on_error: bool = True
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
@@ -84,6 +115,8 @@ class Settings(BaseSettings):
     staging: StagingConfig = StagingConfig()
     auth_jwt: AuthJWTConfig = AuthJWTConfig()
     openai: OpenAIConfig = OpenAIConfig()
+    redis: RedisConfig = RedisConfig()
+    taskiq: TaskiqConfig = TaskiqConfig()
     host: HostConfig = HostConfig()
     api_prefix_v1: str = "/api/v1"
     db: DbConfig = DbConfig()

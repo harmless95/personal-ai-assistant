@@ -6,7 +6,6 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.api.auth.deps import get_current_user
-from app.api.daily_checkin.clients.day_summary import TemplateDaySummaryClient
 from app.api.daily_checkin.deps import get_service
 from app.api.daily_checkin.models.daily import CheckinStatus, QuestionCategory
 from app.api.daily_checkin.services.service_daily import DailyCheckinService
@@ -79,10 +78,7 @@ def test_ask_daily_checkin_endpoint() -> None:
     repository.list_active_questions = AsyncMock(return_value=DEFAULT_POOL)
     repository.list_recent_question_usage = AsyncMock(return_value=({}, date.today()))
     repository.create_checkin = AsyncMock(return_value=checkin)
-    _override_auth_and_service(
-        user,
-        DailyCheckinService(repository=repository, summary_client=TemplateDaySummaryClient()),
-    )
+    _override_auth_and_service(user, DailyCheckinService(repository=repository))
 
     payload = {
         "state": {

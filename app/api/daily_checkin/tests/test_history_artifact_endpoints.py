@@ -6,7 +6,6 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.api.auth.deps import get_current_user
-from app.api.daily_checkin.clients.day_summary import TemplateDaySummaryClient
 from app.api.daily_checkin.deps import get_service
 from app.api.daily_checkin.models.daily import CheckinStatus
 from app.api.daily_checkin.services.service_daily import DailyCheckinService
@@ -54,10 +53,7 @@ def test_get_checkin_history_endpoint() -> None:
     checkin = _make_checkin(user_id=user.id)
     repository = Mock()
     repository.list_checkins_by_user = AsyncMock(return_value=[checkin])
-    _override_auth_and_service(
-        user,
-        DailyCheckinService(repository=repository, summary_client=TemplateDaySummaryClient()),
-    )
+    _override_auth_and_service(user, DailyCheckinService(repository=repository))
 
     try:
         response = client_test.get(
@@ -93,10 +89,7 @@ def test_get_checkin_artifact_endpoint() -> None:
     )
     repository = Mock()
     repository.get_checkin_by_id = AsyncMock(return_value=checkin)
-    _override_auth_and_service(
-        user,
-        DailyCheckinService(repository=repository, summary_client=TemplateDaySummaryClient()),
-    )
+    _override_auth_and_service(user, DailyCheckinService(repository=repository))
 
     try:
         response = client_test.get(f"/api/v1/daily/checkin/{checkin.id}/artifact/")

@@ -19,6 +19,17 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:8.8.0
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   migrate:
     build:
       dockerfile: Dockerfile
@@ -51,6 +62,7 @@ services:
       - DB__POSTGRES_PASSWORD=${DB__POSTGRES_PASSWORD:-secret}
       - DB__POSTGRES_DB=${DB__POSTGRES_DB:-postgres}
       - DB__POSTGRES_PORT=${DB__POSTGRES_PORT:-5432}
+      - REDIS__HOST=${REDIS__HOST:-redis}
       - HOST__HOST=0.0.0.0
       - HOST__PORT=8000
     env_file:
@@ -59,6 +71,32 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: personal_ai_worker
+    entrypoint: taskiq worker app.tasks.broker_taskiq:broker
+    environment:
+      - DB__POSTGRES_HOST=${DB__POSTGRES_HOST:-db}
+      - DB__POSTGRES_USER=${DB__POSTGRES_USER:-postgres}
+      - DB__POSTGRES_PASSWORD=${DB__POSTGRES_PASSWORD:-secret}
+      - DB__POSTGRES_DB=${DB__POSTGRES_DB:-postgres}
+      - DB__POSTGRES_PORT=${DB__POSTGRES_PORT:-5432}
+      - REDIS__HOST=${REDIS__HOST:-redis}
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
 
 volumes:
   postgres_data:

@@ -1,12 +1,11 @@
 from datetime import date
 from typing import Any, cast
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 
-from app.api.daily_checkin.clients.day_summary import TemplateDaySummaryClient
 from app.api.daily_checkin.models.daily import (
     AnswerCheckinRequest,
     AnswerItem,
@@ -31,7 +30,7 @@ from app.db import DailyCheckin, DailyQuestion, QuestionPool
 
 
 def _service(repository: Any) -> DailyCheckinService:
-    return DailyCheckinService(repository=repository, summary_client=TemplateDaySummaryClient())
+    return DailyCheckinService(repository=repository)
 
 
 def _make_repository(
@@ -45,9 +44,7 @@ def _make_repository(
 ) -> Any:
     repository = Mock()
     repository.list_active_questions = AsyncMock(return_value=pool if pool is not None else DEFAULT_POOL)
-    repository.list_recent_question_usage = AsyncMock(
-        return_value=(usage if usage is not None else {}, date.today())
-    )
+    repository.list_recent_question_usage = AsyncMock(return_value=(usage if usage is not None else {}, date.today()))
     repository.get_today_checkin = AsyncMock(return_value=existing_today)
     repository.create_checkin = AsyncMock(return_value=create_return)
     repository.get_checkin_by_id = AsyncMock(return_value=get_return)
@@ -194,13 +191,19 @@ async def test_answer_handler_persists_and_returns_response(
         ],
     )
 
-    response = await service.answer_handler(question_data=request, user_id=user_id)
+    with patch(
+        "app.api.daily_checkin.services.service_daily.enqueue_day_summary",
+        new_callable=AsyncMock,
+        return_value=True,
+    ) as mock_enqueue:
+        response = await service.answer_handler(question_data=request, user_id=user_id)
 
     assert response.checkin_id == checkin_id
     assert response.insights.top_risk_or_blocker == "Too many meetings"
     assert checkin.status == CheckinStatus.ANSWERED
-    assert checkin.artifact is not None
+    assert checkin.artifact is None
     cast(AsyncMock, service.repository.save_checkin).assert_awaited_once()
+    mock_enqueue.assert_awaited_once_with(str(checkin_id))
 
 
 async def test_answer_handler_rejects_mismatched_question_ids(

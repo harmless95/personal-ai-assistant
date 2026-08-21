@@ -27,14 +27,14 @@ Implemented in this repository right now:
 - base FastAPI app with health-check endpoint;
 - auth (`register` / `login` / JWT / `me` / refresh / `logout`);
 - daily check-in `ask` / `answer` / `history` / `artifact` endpoints (auth required);
-- LLM day summary on answer (OpenAI) with template fallback;
+- LLM day summary via Taskiq worker (poll `GET .../artifact/` until ready);
 - centralized settings via `pydantic-settings`;
 - async DB session layer for Postgres;
 - lint + type-check setup (`ruff`, `mypy`);
 - test tooling (`pytest`, `pytest-asyncio`, `pytest-cov`);
 - pre-commit hooks;
 - CI workflow for lint and tests;
-- Docker image and Compose (`db` / `migrate` / `backend`).
+- Docker image and Compose (`db` / `redis` / `migrate` / `backend` / `worker`).
 
 ## Local Setup
 
@@ -85,7 +85,13 @@ From the repository root (uses `.env`):
 docker compose -f Docker-compose.yml up -d --build
 ```
 
-This starts Postgres, runs Alembic migrations, then launches the API on port `8000`.
+This starts Postgres, Redis, migrations, API, and the Taskiq worker.
+
+Worker (day summary LLM):
+
+```bash
+taskiq worker app.tasks.broker_taskiq:broker
+```
 
 Postgres only:
 
