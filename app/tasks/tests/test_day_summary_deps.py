@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from app.tasks import deps
 from app.tasks.components.providers import DaySummaryProvider
 from app.tasks.deps import get_day_summary_processor, get_summary_client
 from app.tasks.services.day_summary_processor import DaySummaryProcessor
@@ -9,30 +10,21 @@ from app.tasks.services.day_summary_processor import DaySummaryProcessor
 
 def test_get_summary_client_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     client = Mock()
-    monkeypatch.setattr(
-        "app.tasks.deps.OpenAIDaySummaryClient",
-        lambda: client,
-    )
+    monkeypatch.setitem(deps._CLIENT_FACTORIES, DaySummaryProvider.OPENAI, lambda: client)
 
     assert get_summary_client(DaySummaryProvider.OPENAI) is client
 
 
 def test_get_summary_client_template(monkeypatch: pytest.MonkeyPatch) -> None:
     client = Mock()
-    monkeypatch.setattr(
-        "app.tasks.deps.TemplateDaySummaryClient",
-        lambda: client,
-    )
+    monkeypatch.setitem(deps._CLIENT_FACTORIES, DaySummaryProvider.TEMPLATE, lambda: client)
 
     assert get_summary_client(DaySummaryProvider.TEMPLATE) is client
 
 
 def test_get_summary_client_uses_settings_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     client = Mock()
-    monkeypatch.setattr(
-        "app.tasks.deps.OpenAIDaySummaryClient",
-        lambda: client,
-    )
+    monkeypatch.setitem(deps._CLIENT_FACTORIES, DaySummaryProvider.OPENAI, lambda: client)
     monkeypatch.setattr(
         "app.tasks.deps.settings.day_summary.provider",
         DaySummaryProvider.OPENAI,

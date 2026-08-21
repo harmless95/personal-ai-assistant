@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Annotated
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,11 @@ from app.tasks.services.day_summary_processor import DaySummaryProcessor
 
 SessionDep = Annotated[AsyncSession, TaskiqDepends(session_getter)]
 
+_CLIENT_FACTORIES: dict[DaySummaryProvider, Callable[[], DaySummaryClient]] = {
+    DaySummaryProvider.OPENAI: OpenAIDaySummaryClient,
+    DaySummaryProvider.TEMPLATE: TemplateDaySummaryClient,
+}
+
 
 def get_repository(session: SessionDep) -> DailyCheckinRepository:
     return DailyCheckinRepository(session=session)
@@ -29,12 +35,10 @@ def get_summary_client(provider: str | None = None) -> DaySummaryClient:
     except ValueError as e:
         raise ValueError(f"unsupported day summary provider: {raw_provider}") from e
 
-    if resolved_provider is DaySummaryProvider.OPENAI:
-        return OpenAIDaySummaryClient()
-    if resolved_provider is DaySummaryProvider.TEMPLATE:
-        return TemplateDaySummaryClient()
-
-    raise ValueError(f"unsupported day summary provider: {resolved_provider}")
+    factory = _CLIENT_FACTORIES.get(resolved_provider)
+    if factory is None:
+        raise ValueError(f"unsupported day summary provider: {resolved_provider}")
+    return factory()
 
 
 DaySummaryClientDep = Annotated[DaySummaryClient, TaskiqDepends(get_summary_client)]

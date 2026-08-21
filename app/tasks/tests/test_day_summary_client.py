@@ -114,7 +114,7 @@ async def test_openai_client_uses_llm_payload(monkeypatch: pytest.MonkeyPatch) -
     fake_client = MagicMock()
     fake_client.chat.completions.create = AsyncMock(return_value=completion)
 
-    with patch("app.tasks.components.clients.openai.AsyncOpenAI", return_value=fake_client):
+    with patch("app.tasks.components.clients.openai_compatible.AsyncOpenAI", return_value=fake_client):
         client = OpenAIDaySummaryClient()
         response = await client.build(
             checkin_id=uuid4(),
@@ -136,7 +136,7 @@ async def test_openai_client_falls_back_on_api_error(monkeypatch: pytest.MonkeyP
     fake_client = MagicMock()
     fake_client.chat.completions.create = AsyncMock(side_effect=OpenAIError("boom"))
 
-    with patch("app.tasks.components.clients.openai.AsyncOpenAI", return_value=fake_client):
+    with patch("app.tasks.components.clients.openai_compatible.AsyncOpenAI", return_value=fake_client):
         client = OpenAIDaySummaryClient()
         response = await client.build(
             checkin_id=uuid4(),
