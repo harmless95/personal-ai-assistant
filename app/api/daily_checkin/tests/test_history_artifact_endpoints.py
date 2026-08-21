@@ -5,21 +5,33 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from app.api.auth.deps import get_current_user
 from app.api.daily_checkin.deps import get_service
 from app.api.daily_checkin.models.daily import CheckinStatus
 from app.api.daily_checkin.services.service_daily import DailyCheckinService
-from app.db import DailyArtifact, DailyCheckin
+from app.db import DailyArtifact, DailyCheckin, User
 from app.main import app
 
 client_test = TestClient(app=app)
 
 
-def _override_service(service: DailyCheckinService) -> None:
+def _override_auth_and_service(user: User, service: DailyCheckinService) -> None:
+    app.dependency_overrides[get_current_user] = lambda: user
     app.dependency_overrides[get_service] = lambda: service
 
 
 def _clear_overrides() -> None:
     app.dependency_overrides.clear()
+
+
+def _make_user(*, user_id: Any | None = None) -> User:
+    return User(
+        id=user_id or uuid4(),
+        email="user@example.com",
+        name="Test",
+        surname="User",
+        hashed_password="hash",
+    )
 
 
 def _make_checkin(*, user_id: Any, status: CheckinStatus = CheckinStatus.ASKED) -> DailyCheckin:
@@ -37,16 +49,16 @@ def _make_checkin(*, user_id: Any, status: CheckinStatus = CheckinStatus.ASKED) 
 
 
 def test_get_checkin_history_endpoint() -> None:
-    user_id = uuid4()
-    checkin = _make_checkin(user_id=user_id)
+    user = _make_user()
+    checkin = _make_checkin(user_id=user.id)
     repository = Mock()
     repository.list_checkins_by_user = AsyncMock(return_value=[checkin])
-    _override_service(DailyCheckinService(repository=repository))
+    _override_auth_and_service(user, DailyCheckinService(repository=repository))
 
     try:
         response = client_test.get(
             "/api/v1/daily/checkin/history/",
-            params={"user_id": str(user_id), "limit": 10, "offset": 0},
+            params={"limit": 10, "offset": 0},
         )
     finally:
         _clear_overrides()
@@ -59,8 +71,8 @@ def test_get_checkin_history_endpoint() -> None:
 
 
 def test_get_checkin_artifact_endpoint() -> None:
-    user_id = uuid4()
-    checkin = _make_checkin(user_id=user_id, status=CheckinStatus.ANSWERED)
+    user = _make_user()
+    checkin = _make_checkin(user_id=user.id, status=CheckinStatus.ANSWERED)
     checkin.artifact = DailyArtifact(
         structured_summary_json={
             "day_summary": "Done",
@@ -77,13 +89,10 @@ def test_get_checkin_artifact_endpoint() -> None:
     )
     repository = Mock()
     repository.get_checkin_by_id = AsyncMock(return_value=checkin)
-    _override_service(DailyCheckinService(repository=repository))
+    _override_auth_and_service(user, DailyCheckinService(repository=repository))
 
     try:
-        response = client_test.get(
-            f"/api/v1/daily/checkin/{checkin.id}/artifact/",
-            params={"user_id": str(user_id)},
-        )
+        response = client_test.get(f"/api/v1/daily/checkin/{checkin.id}/artifact/")
     finally:
         _clear_overrides()
 

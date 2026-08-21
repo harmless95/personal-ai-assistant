@@ -94,10 +94,10 @@ async def test_question_handler_returns_one_question_per_category(
     selected_questions: list[SelectedQuestion],
 ) -> None:
     checkin_id = uuid4()
-    checkin = _asked_checkin(checkin_id, selected_questions)
+    user_id = uuid4()
+    checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
     service = DailyCheckinService(repository=_make_repository(create_return=checkin))
     request = AskCheckinRequest(
-        user_id=uuid4(),
         state=RequestState(
             stress_level=4,
             energy_level=2,
@@ -107,7 +107,7 @@ async def test_question_handler_returns_one_question_per_category(
         ),
     )
 
-    response = await service.question_handler(client_data=request)
+    response = await service.question_handler(client_data=request, user_id=user_id)
 
     assert response.checkin_id == checkin_id
     assert [q.category for q in response.selected_questions] == list(CATEGORIES)
@@ -128,7 +128,6 @@ async def test_question_handler_returns_existing_asked_checkin(
     existing = _asked_checkin(checkin_id, selected_questions)
     service = DailyCheckinService(repository=_make_repository(existing_today=existing))
     request = AskCheckinRequest(
-        user_id=existing.user_id,
         state=RequestState(
             stress_level=4,
             energy_level=2,
@@ -138,7 +137,7 @@ async def test_question_handler_returns_existing_asked_checkin(
         ),
     )
 
-    response = await service.question_handler(client_data=request)
+    response = await service.question_handler(client_data=request, user_id=existing.user_id)
 
     assert response.checkin_id == checkin_id
     cast(AsyncMock, service.repository.create_checkin).assert_not_awaited()
@@ -148,7 +147,8 @@ async def test_question_handler_skips_questions_on_cooldown(
     selected_questions: list[SelectedQuestion],
 ) -> None:
     checkin_id = uuid4()
-    checkin = _asked_checkin(checkin_id, selected_questions)
+    user_id = uuid4()
+    checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
     service = DailyCheckinService(
         repository=_make_repository(
             create_return=checkin,
@@ -156,7 +156,6 @@ async def test_question_handler_skips_questions_on_cooldown(
         )
     )
     request = AskCheckinRequest(
-        user_id=uuid4(),
         state=RequestState(
             stress_level=4,
             energy_level=2,
@@ -166,7 +165,7 @@ async def test_question_handler_skips_questions_on_cooldown(
         ),
     )
 
-    response = await service.question_handler(client_data=request)
+    response = await service.question_handler(client_data=request, user_id=user_id)
 
     action = next(q for q in response.selected_questions if q.category == QuestionCategory.ACTION)
     assert action.question_id == Q_ACTION_02
@@ -181,7 +180,6 @@ async def test_answer_handler_persists_and_returns_response(
     service = DailyCheckinService(repository=_make_repository(get_return=checkin))
     request = AnswerCheckinRequest(
         checkin_id=checkin_id,
-        user_id=user_id,
         answers=[
             AnswerItem(question_id=Q_RISK_01, answer_text="Too many meetings"),
             AnswerItem(question_id=Q_FOCUS_02, answer_text="Did not finish backend task"),
@@ -191,7 +189,7 @@ async def test_answer_handler_persists_and_returns_response(
         ],
     )
 
-    response = await service.answer_handler(question_data=request)
+    response = await service.answer_handler(question_data=request, user_id=user_id)
 
     assert response.checkin_id == checkin_id
     assert response.insights.top_risk_or_blocker == "Too many meetings"
@@ -209,7 +207,6 @@ async def test_answer_handler_rejects_mismatched_question_ids(
     service = DailyCheckinService(repository=_make_repository(get_return=checkin))
     request = AnswerCheckinRequest(
         checkin_id=checkin_id,
-        user_id=user_id,
         answers=[
             AnswerItem(question_id=Q_RISK_01, answer_text="Too many meetings"),
             AnswerItem(question_id=Q_FOCUS_02, answer_text="Did not finish backend task"),
@@ -220,7 +217,7 @@ async def test_answer_handler_rejects_mismatched_question_ids(
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        await service.answer_handler(question_data=request)
+        await service.answer_handler(question_data=request, user_id=user_id)
 
     assert exc_info.value.status_code == 422
 

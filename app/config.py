@@ -54,6 +54,18 @@ class DbConfig(BaseModel):
         )
 
 
+class StagingConfig(BaseModel):
+    max_users: int = 100
+
+
+class AuthJWTConfig(BaseModel):
+    secret_key: SecretStr = SecretStr("change-me-to-secure-key-min-32-chars!!")
+    algorithm_jwt: str = "HS256"
+    token_type: str = "Bearer"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 7
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
@@ -62,6 +74,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     environment: Environment = Environment.DEVELOPMENT
+    staging: StagingConfig = StagingConfig()
+    auth_jwt: AuthJWTConfig = AuthJWTConfig()
     host: HostConfig = HostConfig()
     api_prefix_v1: str = "/api/v1"
     db: DbConfig = DbConfig()

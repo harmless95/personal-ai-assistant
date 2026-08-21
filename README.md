@@ -25,7 +25,8 @@ Project goal: build an adaptive daily Q/A service that:
 
 Implemented in this repository right now:
 - base FastAPI app with health-check endpoint;
-- daily check-in `ask` / `answer` / `history` / `artifact` endpoints;
+- auth (`register` / `login` / JWT / `me` / refresh / `logout`);
+- daily check-in `ask` / `answer` / `history` / `artifact` endpoints (auth required);
 - centralized settings via `pydantic-settings`;
 - async DB session layer for Postgres;
 - lint + type-check setup (`ruff`, `mypy`);
@@ -102,11 +103,18 @@ Swagger docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 Health-check endpoint: `GET /api/v1/utils/health-check`
 
-Daily check-in:
+Auth:
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login` (OAuth2 password form)
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/token/refresh`
+- `POST /api/v1/auth/logout`
+
+Daily check-in (Bearer access token required):
 - `POST /api/v1/daily/checkin/ask/`
 - `POST /api/v1/daily/checkin/answer/`
-- `GET /api/v1/daily/checkin/history/?user_id=...`
-- `GET /api/v1/daily/checkin/{checkin_id}/artifact/?user_id=...`
+- `GET /api/v1/daily/checkin/history/`
+- `GET /api/v1/daily/checkin/{checkin_id}/artifact/`
 
 ---
 

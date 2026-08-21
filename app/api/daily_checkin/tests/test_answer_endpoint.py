@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from app.api.auth.deps import get_current_user
 from app.api.daily_checkin.deps import get_service
 from app.api.daily_checkin.models.daily import CheckinStatus, QuestionCategory
 from app.api.daily_checkin.services.service_daily import DailyCheckinService
@@ -15,18 +16,29 @@ from app.api.daily_checkin.tests.fixtures import (
     Q_LEARNING_01,
     Q_RISK_01,
 )
-from app.db import DailyCheckin, DailyQuestion
+from app.db import DailyCheckin, DailyQuestion, User
 from app.main import app
 
 client_test = TestClient(app=app)
 
 
-def _override_service(service: DailyCheckinService) -> None:
+def _override_auth_and_service(user: User, service: DailyCheckinService) -> None:
+    app.dependency_overrides[get_current_user] = lambda: user
     app.dependency_overrides[get_service] = lambda: service
 
 
 def _clear_overrides() -> None:
     app.dependency_overrides.clear()
+
+
+def _make_user(*, user_id: Any | None = None) -> User:
+    return User(
+        id=user_id or uuid4(),
+        email="user@example.com",
+        name="Test",
+        surname="User",
+        hashed_password="hash",
+    )
 
 
 def _make_asked_checkin(checkin_id: Any, *, user_id: Any) -> DailyCheckin:
@@ -56,17 +68,16 @@ def _make_asked_checkin(checkin_id: Any, *, user_id: Any) -> DailyCheckin:
 
 
 def test_answer_daily_checkin_endpoint() -> None:
+    user = _make_user()
     checkin_id = uuid4()
-    user_id = uuid4()
-    checkin = _make_asked_checkin(checkin_id, user_id=user_id)
+    checkin = _make_asked_checkin(checkin_id, user_id=user.id)
     repository = Mock()
     repository.get_checkin_by_id = AsyncMock(return_value=checkin)
     repository.save_checkin = AsyncMock(return_value=checkin)
-    _override_service(DailyCheckinService(repository=repository))
+    _override_auth_and_service(user, DailyCheckinService(repository=repository))
 
     payload = {
         "checkin_id": str(checkin_id),
-        "user_id": str(user_id),
         "answers": [
             {"question_id": str(Q_RISK_01), "answer_text": "Too many meetings"},
             {"question_id": str(Q_FOCUS_02), "answer_text": "Did not finish backend task"},

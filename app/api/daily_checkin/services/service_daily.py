@@ -57,10 +57,15 @@ class DailyCheckinService:
     def __init__(self, repository: DailyCheckinRepository):
         self.repository = repository
 
-    async def question_handler(self, client_data: AskCheckinRequest) -> AskCheckinResponse:
+    async def question_handler(
+        self,
+        client_data: AskCheckinRequest,
+        *,
+        user_id: UUID,
+    ) -> AskCheckinResponse:
         existing = await self._db(
             self.repository.get_today_checkin(
-                user_id=client_data.user_id,
+                user_id=user_id,
                 with_questions=True,
             )
         )
@@ -76,7 +81,7 @@ class DailyCheckinService:
         max_cooldown = max((question.cooldown_days for question in pool), default=0)
         usage, today = await self._db(
             self.repository.list_recent_question_usage(
-                user_id=client_data.user_id,
+                user_id=user_id,
                 max_cooldown_days=max_cooldown,
             )
         )
@@ -87,7 +92,7 @@ class DailyCheckinService:
             raise_error(DailyCheckinErrors.QUESTION_POOL_EMPTY)
 
         checkin = build_asked_checkin(
-            user_id=client_data.user_id,
+            user_id=user_id,
             state=client_data.state,
             questions=selected,
         )
@@ -102,7 +107,12 @@ class DailyCheckinService:
             selected_questions=selected,
         )
 
-    async def answer_handler(self, question_data: AnswerCheckinRequest) -> AnswerCheckinResponse:
+    async def answer_handler(
+        self,
+        question_data: AnswerCheckinRequest,
+        *,
+        user_id: UUID,
+    ) -> AnswerCheckinResponse:
         checkin = await self._db(
             self.repository.get_checkin_by_id(
                 checkin_id=question_data.checkin_id,
@@ -113,7 +123,7 @@ class DailyCheckinService:
         )
         if checkin is None:
             raise_error(DailyCheckinErrors.CHECKIN_NOT_FOUND)
-        if checkin.user_id != question_data.user_id:
+        if checkin.user_id != user_id:
             raise_error(DailyCheckinErrors.CHECKIN_FORBIDDEN)
         if checkin.status == CheckinStatus.ANSWERED:
             raise_error(DailyCheckinErrors.CHECKIN_ALREADY_ANSWERED)

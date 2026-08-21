@@ -29,7 +29,6 @@ class RequestState(BaseModel):
 
 
 class AskCheckinRequest(BaseModel):
-    user_id: UUID
     state: RequestState
 
 
@@ -62,7 +61,6 @@ class AnswerItem(BaseModel):
 
 class AnswerCheckinRequest(BaseModel):
     checkin_id: UUID
-    user_id: UUID
     answers: list[AnswerItem] = Field(min_length=5, max_length=5)
 
 
