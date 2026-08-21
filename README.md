@@ -27,6 +27,7 @@ Implemented in this repository right now:
 - base FastAPI app with health-check endpoint;
 - auth (`register` / `login` / JWT / `me` / refresh / `logout`);
 - daily check-in `ask` / `answer` / `history` / `artifact` endpoints (auth required);
+- LLM day summary on answer (OpenAI) with template fallback;
 - centralized settings via `pydantic-settings`;
 - async DB session layer for Postgres;
 - lint + type-check setup (`ruff`, `mypy`);

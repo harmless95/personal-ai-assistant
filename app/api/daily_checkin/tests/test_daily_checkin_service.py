@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
+from app.api.daily_checkin.clients.day_summary import TemplateDaySummaryClient
 from app.api.daily_checkin.models.daily import (
     AnswerCheckinRequest,
     AnswerItem,
@@ -27,6 +28,10 @@ from app.api.daily_checkin.tests.fixtures import (
 )
 from app.api.daily_checkin.utils.questions import CATEGORIES
 from app.db import DailyCheckin, DailyQuestion, QuestionPool
+
+
+def _service(repository: Any) -> DailyCheckinService:
+    return DailyCheckinService(repository=repository, summary_client=TemplateDaySummaryClient())
 
 
 def _make_repository(
@@ -96,7 +101,7 @@ async def test_question_handler_returns_one_question_per_category(
     checkin_id = uuid4()
     user_id = uuid4()
     checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
-    service = DailyCheckinService(repository=_make_repository(create_return=checkin))
+    service = _service(_make_repository(create_return=checkin))
     request = AskCheckinRequest(
         state=RequestState(
             stress_level=4,
@@ -126,7 +131,7 @@ async def test_question_handler_returns_existing_asked_checkin(
 ) -> None:
     checkin_id = uuid4()
     existing = _asked_checkin(checkin_id, selected_questions)
-    service = DailyCheckinService(repository=_make_repository(existing_today=existing))
+    service = _service(_make_repository(existing_today=existing))
     request = AskCheckinRequest(
         state=RequestState(
             stress_level=4,
@@ -149,8 +154,8 @@ async def test_question_handler_skips_questions_on_cooldown(
     checkin_id = uuid4()
     user_id = uuid4()
     checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
-    service = DailyCheckinService(
-        repository=_make_repository(
+    service = _service(
+        _make_repository(
             create_return=checkin,
             usage={Q_ACTION_01: date.today()},
         )
@@ -177,7 +182,7 @@ async def test_answer_handler_persists_and_returns_response(
     checkin_id = uuid4()
     user_id = uuid4()
     checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
-    service = DailyCheckinService(repository=_make_repository(get_return=checkin))
+    service = _service(_make_repository(get_return=checkin))
     request = AnswerCheckinRequest(
         checkin_id=checkin_id,
         answers=[
@@ -204,7 +209,7 @@ async def test_answer_handler_rejects_mismatched_question_ids(
     checkin_id = uuid4()
     user_id = uuid4()
     checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
-    service = DailyCheckinService(repository=_make_repository(get_return=checkin))
+    service = _service(_make_repository(get_return=checkin))
     request = AnswerCheckinRequest(
         checkin_id=checkin_id,
         answers=[
@@ -227,7 +232,7 @@ async def test_history_handler_returns_items(
 ) -> None:
     user_id = uuid4()
     checkin = _asked_checkin(uuid4(), selected_questions, user_id=user_id)
-    service = DailyCheckinService(repository=_make_repository(history_return=[checkin]))
+    service = _service(_make_repository(history_return=[checkin]))
 
     response = await service.history_handler(user_id=user_id, limit=30, offset=0)
 
@@ -264,7 +269,7 @@ async def test_artifact_handler_returns_summary(
             },
         }
     )
-    service = DailyCheckinService(repository=_make_repository(get_return=checkin))
+    service = _service(_make_repository(get_return=checkin))
 
     response = await service.artifact_handler(checkin_id=checkin_id, user_id=user_id)
 
@@ -281,7 +286,7 @@ async def test_artifact_handler_missing_artifact(
     user_id = uuid4()
     checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
     checkin.artifact = None
-    service = DailyCheckinService(repository=_make_repository(get_return=checkin))
+    service = _service(_make_repository(get_return=checkin))
 
     with pytest.raises(HTTPException) as exc_info:
         await service.artifact_handler(checkin_id=checkin_id, user_id=user_id)

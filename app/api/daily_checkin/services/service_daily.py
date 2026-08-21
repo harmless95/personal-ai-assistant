@@ -2,6 +2,7 @@ from collections.abc import Awaitable
 from typing import NoReturn, TypeVar
 from uuid import UUID
 
+from app.api.daily_checkin.clients.day_summary import DaySummaryClient
 from app.api.daily_checkin.data.daily_checkin_repository import DailyCheckinRepository
 from app.api.daily_checkin.data.errors import (
     DatabaseError,
@@ -36,7 +37,6 @@ from app.api.daily_checkin.utils.questions import (
     to_selected_question,
 )
 from app.api.daily_checkin.utils.summary import (
-    build_answer_response,
     map_answers_by_category,
     structured_summary_from_response,
 )
@@ -54,8 +54,9 @@ _DB_ERRORS = (
 
 
 class DailyCheckinService:
-    def __init__(self, repository: DailyCheckinRepository):
+    def __init__(self, repository: DailyCheckinRepository, summary_client: DaySummaryClient):
         self.repository = repository
+        self.summary_client = summary_client
 
     async def question_handler(
         self,
@@ -134,8 +135,9 @@ class DailyCheckinService:
             questions=checkin.questions,
             answers=question_data.answers,
         )
-        response = build_answer_response(
+        response = await self.summary_client.build(
             checkin_id=question_data.checkin_id,
+            questions=checkin.questions,
             answers_by_category=answers_by_category,
         )
 

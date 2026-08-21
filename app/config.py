@@ -66,6 +66,13 @@ class AuthJWTConfig(BaseModel):
     refresh_token_expire_days: int = 7
 
 
+class OpenAIConfig(BaseModel):
+    api_key: SecretStr = SecretStr("")
+    model: str = "gpt-4.1-mini"
+    max_completion_tokens: int = 1024
+    enabled: bool = True
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
@@ -76,6 +83,7 @@ class Settings(BaseSettings):
     environment: Environment = Environment.DEVELOPMENT
     staging: StagingConfig = StagingConfig()
     auth_jwt: AuthJWTConfig = AuthJWTConfig()
+    openai: OpenAIConfig = OpenAIConfig()
     host: HostConfig = HostConfig()
     api_prefix_v1: str = "/api/v1"
     db: DbConfig = DbConfig()

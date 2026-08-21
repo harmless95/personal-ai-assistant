@@ -10,10 +10,11 @@ This document tracks planned work that is not implemented yet.
 - Structured response schemas for day summary / artifact output.
 - Auth (`register` / `login` / JWT access+refresh / `me` / `logout`) wired into daily check-in.
 - Docker image + Compose services for `db` / `migrate` / `backend`.
+- LLM day summary on `/answer` (OpenAI JSON) with template fallback.
 
 ## Next Steps
 
-- Replace template day summary with LLM-generated structured output.
+- Replace question selection with LLM or hybrid pool+LLM (optional).
 - Add streaming responses (SSE or WebSocket).
 - Add tool calling (`search_docs`) with retries/fallback.
 - Add RAG pipeline (ingest + retrieval) for knowledge-assisted prompts.
@@ -23,5 +24,4 @@ This document tracks planned work that is not implemented yet.
 
 Future `.env.example` sections will be added when corresponding features are implemented:
 - Redis/Task queue settings
-- LLM provider settings
 - RAG/index settings
