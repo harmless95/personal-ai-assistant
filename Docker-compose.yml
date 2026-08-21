@@ -38,5 +38,27 @@ services:
       db:
         condition: service_healthy
 
+  backend:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: personal_ai_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DB__POSTGRES_HOST=${DB__POSTGRES_HOST:-db}
+      - DB__POSTGRES_USER=${DB__POSTGRES_USER:-postgres}
+      - DB__POSTGRES_PASSWORD=${DB__POSTGRES_PASSWORD:-secret}
+      - DB__POSTGRES_DB=${DB__POSTGRES_DB:-postgres}
+      - DB__POSTGRES_PORT=${DB__POSTGRES_PORT:-5432}
+      - HOST__HOST=0.0.0.0
+      - HOST__PORT=8000
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
 volumes:
   postgres_data:

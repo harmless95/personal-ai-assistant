@@ -32,7 +32,8 @@ Implemented in this repository right now:
 - lint + type-check setup (`ruff`, `mypy`);
 - test tooling (`pytest`, `pytest-asyncio`, `pytest-cov`);
 - pre-commit hooks;
-- CI workflow for lint and tests.
+- CI workflow for lint and tests;
+- Docker image and Compose (`db` / `migrate` / `backend`).
 
 ## Local Setup
 
@@ -75,21 +76,31 @@ DB__POSTGRES_DB=personal_ai_assistant
 Variables are loaded via `pydantic-settings` with nested delimiter `__` (see `app/config.py`).  
 `DB__POSTGRES_*` values must match the PostgreSQL container credentials.
 
-### 2. Start PostgreSQL
+### 2. Start stack with Docker
 
 From the repository root (uses `.env`):
+
+```bash
+docker compose -f Docker-compose.yml up -d --build
+```
+
+This starts Postgres, runs Alembic migrations, then launches the API on port `8000`.
+
+Postgres only:
 
 ```bash
 docker compose -f Docker-compose.yml up -d db
 ```
 
-### 3. Run database migrations
+### 3. Run database migrations (local app)
+
+If you run the API on the host against Docker Postgres:
 
 ```bash
 alembic -c app/alembic.ini upgrade head
 ```
 
-### 4. Run the application
+### 4. Run the application (local)
 
 From the repository root:
 

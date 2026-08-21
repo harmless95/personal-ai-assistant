@@ -9,6 +9,7 @@ This document tracks planned work that is not implemented yet.
 - Repository layer and Postgres persistence for check-ins, answers, and artifacts.
 - Structured response schemas for day summary / artifact output.
 - Auth (`register` / `login` / JWT access+refresh / `me` / `logout`) wired into daily check-in.
+- Docker image + Compose services for `db` / `migrate` / `backend`.
 
 ## Next Steps
 
@@ -16,7 +17,6 @@ This document tracks planned work that is not implemented yet.
 - Add streaming responses (SSE or WebSocket).
 - Add tool calling (`search_docs`) with retries/fallback.
 - Add RAG pipeline (ingest + retrieval) for knowledge-assisted prompts.
-- Fix Docker `migrate` service (add Dockerfile or drop compose migrate step).
 - Optionally add FK from `daily_checkins.user_id` to `users.id`.
 
 ## Environment Expansion (Planned)

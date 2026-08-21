@@ -1,0 +1,30 @@
+# Hidden tool folders
+.git
+.github
+.idea
+.vscode
+.venv
+
+# Environment files and secrets
+.env
+*.local
+
+# Cache and temporary files
+__pycache__/
+*.pyc
+.pytest_cache
+.coverage
+htmlcov/
+coverage.json
+pytest.xml
+pytest-coverage.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# UV / packaging
+.uv
+dist/
+
+# Local notes / agent scratch
+.ai_scratch
