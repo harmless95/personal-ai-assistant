@@ -1,7 +1,8 @@
 from collections.abc import Awaitable
-from logging import getLogger
 from typing import NoReturn, TypeVar
 from uuid import UUID
+
+import structlog
 
 from app.api.daily_checkin.data.daily_checkin_repository import DailyCheckinRepository
 from app.api.daily_checkin.data.errors import (
@@ -43,7 +44,7 @@ from app.api.daily_checkin.utils.summary import (
 from app.db import DailyCheckin
 from app.tasks.enqueue import enqueue_day_summary
 
-logger = getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
 
@@ -142,7 +143,7 @@ class DailyCheckinService:
 
         enqueued = await enqueue_day_summary(str(checkin.id))
         if not enqueued:
-            logger.warning("day_summary_not_enqueued checkin_id=%s", checkin.id)
+            logger.warning("day_summary_not_enqueued", checkin_id=str(checkin.id))
 
         return build_answer_response(
             checkin_id=question_data.checkin_id,

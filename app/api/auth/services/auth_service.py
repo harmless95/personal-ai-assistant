@@ -1,9 +1,9 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-from logging import getLogger
 from uuid import UUID
 
 import jwt
+import structlog
 from jwt import InvalidTokenError
 
 from app.api.auth.data.token_repository import TokenRepository
@@ -16,7 +16,7 @@ from app.api.auth.utils.token import TokenCryptoUtils
 from app.config import Environment, settings
 from app.db import User
 
-logger = getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class AuthService:
@@ -29,29 +29,34 @@ class AuthService:
         self.user_repo = user_repository
 
     async def get_tokens(self, user_id: UUID) -> TokenResponse:
-        logger.debug("%s user_id=%s", LogEvents.TOKENS_CREATION_STARTED, user_id)
+        logger.debug(LogEvents.TOKENS_CREATION_STARTED, user_id=str(user_id))
         access_token = await AuthService._create_access_token(user_id=user_id)
         refresh_token = await self._create_refresh_token(user_id=user_id)
-        logger.debug("%s user_id=%s", LogEvents.TOKENS_CREATED_SUCCESSFULLY, user_id)
+        logger.debug(LogEvents.TOKENS_CREATED_SUCCESSFULLY, user_id=str(user_id))
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
     async def refresh_access(self, refresh_token: str) -> TokenResponse:
         token_payload = await AuthService.validate_payload(token=refresh_token)
         if token_payload.scope != TokenScope.REFRESH:
             logger.info(
-                "%s user_id=%s expected=%s received=%s",
                 AuthErrors.INVALID_TOKEN_SCOPE.log_event,
-                token_payload.sub,
-                TokenScope.REFRESH,
-                token_payload.scope,
+                user_id=str(token_payload.sub) if token_payload.sub else None,
+                expected=TokenScope.REFRESH,
+                received=token_payload.scope,
             )
             AuthErrors.INVALID_TOKEN_SCOPE.raise_http()
         token_hash = TokenCryptoUtils.hash_token(token=refresh_token)
         db_token = await self.token_repo.revoke_token(user_id=token_payload.sub, token=token_hash)
         if not db_token:
-            logger.info("%s user_id=%s", AuthErrors.TOKEN_NOT_FOUND.log_event, token_payload.sub)
+            logger.info(
+                AuthErrors.TOKEN_NOT_FOUND.log_event,
+                user_id=str(token_payload.sub) if token_payload.sub else None,
+            )
             AuthErrors.TOKEN_NOT_FOUND.raise_http()
-        logger.debug("%s user_id=%s", LogEvents.TOKEN_REFRESH_SUCCESSFUL, token_payload.sub)
+        logger.debug(
+            LogEvents.TOKEN_REFRESH_SUCCESSFUL,
+            user_id=str(token_payload.sub) if token_payload.sub else None,
+        )
         return await self.get_tokens(user_id=token_payload.sub)
 
     async def _create_refresh_token(self, user_id: UUID) -> str:
@@ -76,15 +81,15 @@ class AuthService:
             user_count = await self.user_repo.count_users()
             if user_count >= settings.staging.max_users:
                 logger.info(
-                    "%s user_count=%s max_users=%s",
                     AuthErrors.USER_LIMIT_REACHED.log_event,
-                    user_count,
-                    settings.staging.max_users,
+                    user_count=user_count,
+                    max_users=settings.staging.max_users,
                 )
                 AuthErrors.USER_LIMIT_REACHED.raise_http()
 
         existing_user = await self.user_repo.get_user_by_email(email=str(register_request.email))
         if existing_user:
+            # Do not log email — only the event.
             logger.info(AuthErrors.EMAIL_ALREADY_TAKEN.log_event)
             AuthErrors.EMAIL_ALREADY_TAKEN.raise_http()
 
@@ -98,7 +103,7 @@ class AuthService:
             name=register_request.name,
             surname=register_request.surname,
         )
-        logger.debug("%s user_id=%s", LogEvents.USER_REGISTERED, new_user.id)
+        logger.debug(LogEvents.USER_REGISTERED, user_id=str(new_user.id))
         return RegisterResponse.model_validate(new_user)
 
     async def get_current_user(
@@ -110,7 +115,7 @@ class AuthService:
             AuthErrors.TOKEN_MISSING_SUBJECT.raise_http()
         user = await self.user_repo.get_user_by_id(id=payload.sub)
         if not user:
-            logger.info("%s user_id=%s", AuthErrors.USER_NOT_FOUND.log_event, payload.sub)
+            logger.info(AuthErrors.USER_NOT_FOUND.log_event, user_id=str(payload.sub))
             AuthErrors.USER_NOT_FOUND.raise_http()
         return user
 
@@ -139,8 +144,8 @@ class AuthService:
             is_expired = "expired" in str(e).lower()
             if is_expired:
                 error = AuthErrors.TOKEN_EXPIRED
-                logger.info("%s error_type=expired", error.log_event)
+                logger.info(error.log_event, error_type="expired")
             else:
                 error = AuthErrors.TOKEN_INVALID
-                logger.info("%s error_type=invalid", error.log_event)
+                logger.info(error.log_event, error_type="invalid")
             error.raise_http()

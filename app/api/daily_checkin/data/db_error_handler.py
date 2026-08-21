@@ -1,8 +1,8 @@
 from collections.abc import Awaitable, Callable
 from functools import wraps
-from logging import getLogger
 from typing import Any, TypeVar
 
+import structlog
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 
 from app.api.daily_checkin.data.errors import (
@@ -14,7 +14,7 @@ from app.api.daily_checkin.data.errors import (
     NotNullViolationError,
 )
 
-logger = getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
 
@@ -46,12 +46,13 @@ def _parse_integrity_error(error: IntegrityError) -> tuple[str | None, str | Non
 def _raise_for_integrity_error(error: IntegrityError, func_name: str) -> None:
     pgcode, constraint = _parse_integrity_error(error)
 
+    # Avoid logging full exception text — Postgres DETAIL can include emails/keys.
     logger.warning(
-        "integrity_error func=%s pgcode=%s constraint=%s error=%s",
-        func_name,
-        pgcode,
-        constraint,
-        error,
+        "integrity_error",
+        func=func_name,
+        pgcode=pgcode,
+        constraint=constraint,
+        error_type=type(error).__name__,
     )
 
     if constraint == UQ_DAILY_CHECKINS_USER_DATE or pgcode == PG_UNIQUE_VIOLATION:
@@ -64,11 +65,11 @@ def _raise_for_integrity_error(error: IntegrityError, func_name: str) -> None:
         raise NotNullViolationError() from error
 
     logger.error(
-        "unhandled_integrity_error func=%s pgcode=%s constraint=%s error=%s",
-        func_name,
-        pgcode,
-        constraint,
-        error,
+        "unhandled_integrity_error",
+        func=func_name,
+        pgcode=pgcode,
+        constraint=constraint,
+        error_type=type(error).__name__,
     )
     raise IntegrityViolationError() from error
 
@@ -82,10 +83,18 @@ def handle_db_errors(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitab
             _raise_for_integrity_error(e, func.__name__)
             raise
         except OperationalError as e:
-            logger.critical("database_unavailable func=%s error=%s", func.__name__, e)
+            logger.critical(
+                "database_unavailable",
+                func=func.__name__,
+                error_type=type(e).__name__,
+            )
             raise DatabaseUnavailableError() from e
         except SQLAlchemyError as e:
-            logger.error("database_error func=%s error=%s", func.__name__, e)
+            logger.error(
+                "database_error",
+                func=func.__name__,
+                error_type=type(e).__name__,
+            )
             raise DatabaseError() from e
 
     return wrapper

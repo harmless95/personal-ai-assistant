@@ -1,7 +1,7 @@
 import asyncio
-from logging import getLogger
 from typing import Annotated
 
+import structlog
 from fastapi import Body, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +17,7 @@ from app.config import settings
 from app.db import User
 from app.db.session import session_getter
 
-logger = getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_prefix_v1}/auth/login")
 TokenDep = Annotated[str, Depends(oauth2_scheme)]
@@ -44,15 +44,14 @@ async def get_current_user(
     payload_user = await AuthService.validate_payload(token=token)
     if payload_user.scope != TokenScope.ACCESS:
         logger.info(
-            "%s expected=%s received=%s user_id=%s",
             AuthErrors.INVALID_TOKEN_SCOPE.log_event,
-            TokenScope.ACCESS,
-            payload_user.scope,
-            payload_user.sub,
+            expected=TokenScope.ACCESS,
+            received=payload_user.scope,
+            user_id=str(payload_user.sub) if payload_user.sub else None,
         )
         AuthErrors.INVALID_TOKEN_SCOPE.raise_http()
     user = await auth_service.get_current_user(payload=payload_user)
-    logger.debug("%s user_id=%s", LogEvents.ACCESS_TOKEN_VALIDATED, user.id)
+    logger.debug(LogEvents.ACCESS_TOKEN_VALIDATED, user_id=str(user.id))
     return user
 
 
@@ -70,9 +69,10 @@ async def authenticate(
 ) -> User:
     user = await auth_service.user_repo.get_user_by_email(email=form_data.username)
     if not user or not await _verify_login_password(password=form_data.password, user=user):
-        logger.info("%s reason=invalid_credentials", AuthErrors.AUTHENTICATION_FAILED.log_event)
+        # Do not log email/password — only that credentials were rejected.
+        logger.info(AuthErrors.AUTHENTICATION_FAILED.log_event, reason="invalid_credentials")
         AuthErrors.AUTHENTICATION_FAILED.raise_http()
-    logger.debug("%s user_id=%s", LogEvents.AUTHENTICATION_SUCCESSFUL, user.id)
+    logger.debug(LogEvents.AUTHENTICATION_SUCCESSFUL, user_id=str(user.id))
     return user
 
 
@@ -84,11 +84,10 @@ async def validate_refresh_token(token: RefreshTokenDep) -> str:
     token_payload = await AuthService.validate_payload(token=token)
     if token_payload.scope != TokenScope.REFRESH:
         logger.info(
-            "%s expected=%s received=%s user_id=%s",
             AuthErrors.INVALID_TOKEN_SCOPE.log_event,
-            TokenScope.REFRESH,
-            token_payload.scope,
-            token_payload.sub,
+            expected=TokenScope.REFRESH,
+            received=token_payload.scope,
+            user_id=str(token_payload.sub) if token_payload.sub else None,
         )
         AuthErrors.INVALID_TOKEN_SCOPE.raise_http()
     return token
@@ -104,20 +103,25 @@ async def revoke_current_token(
     token_payload = await AuthService.validate_payload(token=token)
     if token_payload.scope != TokenScope.REFRESH:
         logger.info(
-            "%s expected=%s received=%s user_id=%s",
             AuthErrors.INVALID_TOKEN_SCOPE.log_event,
-            TokenScope.REFRESH,
-            token_payload.scope,
-            token_payload.sub,
+            expected=TokenScope.REFRESH,
+            received=token_payload.scope,
+            user_id=str(token_payload.sub) if token_payload.sub else None,
         )
         AuthErrors.INVALID_TOKEN_SCOPE.raise_http()
 
     token_hash = TokenCryptoUtils.hash_token(token=token)
     db_token = await auth_service.token_repo.revoke_token(user_id=token_payload.sub, token=token_hash)
     if not db_token:
-        logger.info("%s user_id=%s", AuthErrors.TOKEN_NOT_FOUND.log_event, token_payload.sub)
+        logger.info(
+            AuthErrors.TOKEN_NOT_FOUND.log_event,
+            user_id=str(token_payload.sub) if token_payload.sub else None,
+        )
         AuthErrors.TOKEN_NOT_FOUND.raise_http()
-    logger.debug("%s user_id=%s", LogEvents.TOKEN_REVOKED, token_payload.sub)
+    logger.debug(
+        LogEvents.TOKEN_REVOKED,
+        user_id=str(token_payload.sub) if token_payload.sub else None,
+    )
 
 
 LogoutTokenDep = Annotated[None, Depends(revoke_current_token)]

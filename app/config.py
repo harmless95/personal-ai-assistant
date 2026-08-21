@@ -2,6 +2,7 @@ from enum import StrEnum
 from pathlib import Path
 from urllib.parse import quote
 
+from fastapi_structlog import LogSettings
 from pydantic import BaseModel, PostgresDsn, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -120,6 +121,7 @@ class Settings(BaseSettings):
     host: HostConfig = HostConfig()
     api_prefix_v1: str = "/api/v1"
     db: DbConfig = DbConfig()
+    log: LogSettings = LogSettings()
 
 
 settings = Settings()

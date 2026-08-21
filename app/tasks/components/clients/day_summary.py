@@ -1,8 +1,8 @@
 from collections.abc import Mapping, Sequence
-from logging import getLogger
 from typing import Protocol
 from uuid import UUID
 
+import structlog
 from openai import AsyncOpenAI, OpenAIError
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
@@ -16,7 +16,7 @@ from app.api.daily_checkin.utils.summary import build_answer_response
 from app.config import settings
 from app.db import DailyQuestion
 
-logger = getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 SYSTEM_PROMPT = """You are a concise daily coaching assistant.
 Given five check-in Q&A items, produce a short day summary and structured coaching output.
@@ -97,7 +97,7 @@ class OpenAIDaySummaryClient:
             answers_by_category=dict(answers_by_category),
         )
         if not self._enabled or self._client is None:
-            logger.info("day_summary_llm_skipped reason=disabled_or_missing_api_key")
+            logger.info("day_summary_llm_skipped", reason="disabled_or_missing_api_key")
             return fallback
 
         user_prompt = self._build_user_prompt(questions, answers_by_category)
@@ -113,20 +113,23 @@ class OpenAIDaySummaryClient:
                 ],
             )
         except OpenAIError:
-            logger.exception("day_summary_llm_request_failed")
+            # Handled degradation: template fallback — not a task failure.
+            logger.warning("day_summary_llm_request_failed", checkin_id=str(checkin_id), exc_info=True)
             return fallback
 
         content = chat_completion.choices[0].message.content
         if not content:
-            logger.warning("day_summary_llm_empty_response")
+            logger.warning("day_summary_llm_empty_response", checkin_id=str(checkin_id))
             return fallback
 
         try:
             payload = LlmDaySummaryPayload.model_validate_json(content)
         except ValidationError:
-            logger.exception("day_summary_llm_invalid_payload")
+            # Handled degradation: template fallback — do not use exception/error.
+            logger.warning("day_summary_llm_invalid_payload", checkin_id=str(checkin_id), exc_info=True)
             return fallback
 
+        logger.info("day_summary_llm_ok", checkin_id=str(checkin_id), model=self._model)
         return AnswerCheckinResponse(
             checkin_id=checkin_id,
             answers_received=True,

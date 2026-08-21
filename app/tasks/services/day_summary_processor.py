@@ -1,5 +1,6 @@
-from logging import getLogger
 from uuid import UUID
+
+import structlog
 
 from app.api.daily_checkin.data.daily_checkin_repository import DailyCheckinRepository
 from app.api.daily_checkin.models.daily import AnswerItem
@@ -7,7 +8,7 @@ from app.api.daily_checkin.utils.checkin import attach_artifact
 from app.api.daily_checkin.utils.summary import map_answers_by_category, structured_summary_from_response
 from app.tasks.components.clients.day_summary import DaySummaryClient
 
-logger = getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class DaySummaryProcessor:
@@ -27,13 +28,13 @@ class DaySummaryProcessor:
             with_artifact=True,
         )
         if checkin is None:
-            logger.warning("day_summary_checkin_not_found checkin_id=%s", checkin_id)
+            logger.warning("day_summary_checkin_not_found", checkin_id=str(checkin_id))
             return
         if checkin.artifact is not None:
-            logger.info("day_summary_already_exists checkin_id=%s", checkin_id)
+            logger.info("day_summary_already_exists", checkin_id=str(checkin_id))
             return
         if not checkin.answers:
-            logger.warning("day_summary_missing_answers checkin_id=%s", checkin_id)
+            logger.warning("day_summary_missing_answers", checkin_id=str(checkin_id))
             return
 
         answers = [
@@ -41,7 +42,7 @@ class DaySummaryProcessor:
         ]
         answers_by_category = map_answers_by_category(questions=checkin.questions, answers=answers)
         if not answers_by_category:
-            logger.warning("day_summary_empty_category_map checkin_id=%s", checkin_id)
+            logger.warning("day_summary_empty_category_map", checkin_id=str(checkin_id))
             return
 
         response = await self.summary_client.build(
@@ -54,8 +55,9 @@ class DaySummaryProcessor:
             structured_summary=structured_summary_from_response(response),
         )
         await self.repository.save_checkin(checkin=checkin)
+        # Do not log answer/summary text — PII / user content.
         logger.info(
-            "day_summary_saved checkin_id=%s categories=%s",
-            checkin_id,
-            sorted(category.value for category in answers_by_category),
+            "day_summary_saved",
+            checkin_id=str(checkin_id),
+            categories=sorted(category.value for category in answers_by_category),
         )
