@@ -6,7 +6,7 @@ import pytest
 
 from app.api.daily_checkin.models.daily import CheckinStatus, QuestionCategory
 from app.db import DailyCheckin, DailyQuestion, QuestionAnswer
-from app.tasks.components.clients.day_summary import TemplateDaySummaryClient
+from app.tasks.components.clients.template import TemplateDaySummaryClient
 from app.tasks.enqueue import enqueue_day_summary
 from app.tasks.services.day_summary_processor import DaySummaryProcessor
 

@@ -8,7 +8,8 @@ from pydantic import SecretStr
 from app.api.daily_checkin.models.daily import QuestionCategory
 from app.config import settings
 from app.db import DailyQuestion
-from app.tasks.components.clients.day_summary import OpenAIDaySummaryClient, TemplateDaySummaryClient
+from app.tasks.components.clients.openai import OpenAIDaySummaryClient
+from app.tasks.components.clients.template import TemplateDaySummaryClient
 
 
 def _questions() -> list[DailyQuestion]:
@@ -113,7 +114,7 @@ async def test_openai_client_uses_llm_payload(monkeypatch: pytest.MonkeyPatch) -
     fake_client = MagicMock()
     fake_client.chat.completions.create = AsyncMock(return_value=completion)
 
-    with patch("app.tasks.components.clients.day_summary.AsyncOpenAI", return_value=fake_client):
+    with patch("app.tasks.components.clients.openai.AsyncOpenAI", return_value=fake_client):
         client = OpenAIDaySummaryClient()
         response = await client.build(
             checkin_id=uuid4(),
@@ -135,7 +136,7 @@ async def test_openai_client_falls_back_on_api_error(monkeypatch: pytest.MonkeyP
     fake_client = MagicMock()
     fake_client.chat.completions.create = AsyncMock(side_effect=OpenAIError("boom"))
 
-    with patch("app.tasks.components.clients.day_summary.AsyncOpenAI", return_value=fake_client):
+    with patch("app.tasks.components.clients.openai.AsyncOpenAI", return_value=fake_client):
         client = OpenAIDaySummaryClient()
         response = await client.build(
             checkin_id=uuid4(),

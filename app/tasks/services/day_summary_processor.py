@@ -6,7 +6,7 @@ from app.api.daily_checkin.data.daily_checkin_repository import DailyCheckinRepo
 from app.api.daily_checkin.models.daily import AnswerItem
 from app.api.daily_checkin.utils.checkin import attach_artifact
 from app.api.daily_checkin.utils.summary import map_answers_by_category, structured_summary_from_response
-from app.tasks.components.clients.day_summary import DaySummaryClient
+from app.tasks.components.clients.base import DaySummaryClient
 
 logger = structlog.get_logger(__name__)
 

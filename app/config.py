@@ -105,6 +105,10 @@ class TaskiqConfig(BaseModel):
     day_summary_retry_on_error: bool = True
 
 
+class DaySummaryConfig(BaseModel):
+    provider: str = "openai"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
@@ -116,6 +120,7 @@ class Settings(BaseSettings):
     staging: StagingConfig = StagingConfig()
     auth_jwt: AuthJWTConfig = AuthJWTConfig()
     openai: OpenAIConfig = OpenAIConfig()
+    day_summary: DaySummaryConfig = DaySummaryConfig()
     redis: RedisConfig = RedisConfig()
     taskiq: TaskiqConfig = TaskiqConfig()
     host: HostConfig = HostConfig()

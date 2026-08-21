@@ -1,5 +1,4 @@
 from collections.abc import Mapping, Sequence
-from typing import Protocol
 from uuid import UUID
 
 import structlog
@@ -15,26 +14,10 @@ from app.api.daily_checkin.models.daily import (
 from app.api.daily_checkin.utils.summary import build_answer_response
 from app.config import settings
 from app.db import DailyQuestion
+from app.tasks.components.clients.base import DaySummaryClient
+from app.tasks.components.prompts.system_prompts import SYSTEM_PROMPT
 
 logger = structlog.get_logger(__name__)
-
-SYSTEM_PROMPT = """You are a concise daily coaching assistant.
-Given five check-in Q&A items, produce a short day summary and structured coaching output.
-Respond with JSON only matching this schema:
-{
-  "day_summary": "2-4 sentences summarizing the day",
-  "insights": {
-    "top_risk_or_blocker": "short phrase",
-    "top_strength": "short phrase",
-    "learning_gap": "short phrase"
-  },
-  "recommended_actions": {
-    "today_action": "one concrete action",
-    "two_checkpoints": ["checkpoint 1", "checkpoint 2"]
-  }
-}
-Keep language clear and practical. Do not invent facts beyond the answers.
-"""
 
 
 class LlmDaySummaryPayload(BaseModel):
@@ -52,32 +35,7 @@ class LlmDaySummaryPayload(BaseModel):
         return value
 
 
-class DaySummaryClient(Protocol):
-    async def build(
-        self,
-        *,
-        checkin_id: UUID,
-        questions: Sequence[DailyQuestion],
-        answers_by_category: Mapping[QuestionCategory, str],
-    ) -> AnswerCheckinResponse: ...
-
-
-class TemplateDaySummaryClient:
-    async def build(
-        self,
-        *,
-        checkin_id: UUID,
-        questions: Sequence[DailyQuestion],
-        answers_by_category: Mapping[QuestionCategory, str],
-    ) -> AnswerCheckinResponse:
-        _ = questions
-        return build_answer_response(
-            checkin_id=checkin_id,
-            answers_by_category=dict(answers_by_category),
-        )
-
-
-class OpenAIDaySummaryClient:
+class OpenAIDaySummaryClient(DaySummaryClient):
     def __init__(self) -> None:
         self._api_key = settings.openai.api_key.get_secret_value().strip()
         self._enabled = settings.openai.enabled and bool(self._api_key)
