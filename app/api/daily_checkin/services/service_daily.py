@@ -28,6 +28,7 @@ from app.api.daily_checkin.utils.checkin import (
     answers_match_questions,
     attach_answers,
     build_asked_checkin,
+    mark_artifact_failed,
     to_artifact_response,
     to_history_item,
 )
@@ -144,6 +145,8 @@ class DailyCheckinService:
         enqueued = await enqueue_day_summary(str(checkin.id))
         if not enqueued:
             logger.warning("day_summary_not_enqueued", checkin_id=str(checkin.id))
+            mark_artifact_failed(checkin)
+            await self._db(self.repository.save_checkin(checkin=checkin))
 
         return build_answer_response(
             checkin_id=question_data.checkin_id,
@@ -182,7 +185,7 @@ class DailyCheckinService:
             raise_error(DailyCheckinErrors.CHECKIN_NOT_FOUND)
         if checkin.user_id != user_id:
             raise_error(DailyCheckinErrors.CHECKIN_FORBIDDEN)
-        if checkin.artifact is None:
+        if checkin.status != CheckinStatus.ANSWERED:
             raise_error(DailyCheckinErrors.ARTIFACT_NOT_FOUND)
         return to_artifact_response(checkin)
 

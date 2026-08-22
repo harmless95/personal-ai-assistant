@@ -29,6 +29,7 @@ class DailyCheckin(Base):
         server_default=text("CURRENT_DATE"),
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="asked")
+    artifact_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     stress_level: Mapped[int] = mapped_column(Integer, nullable=False)
     energy_level: Mapped[int] = mapped_column(Integer, nullable=False)

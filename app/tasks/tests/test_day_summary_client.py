@@ -5,7 +5,7 @@ import pytest
 from openai import OpenAIError
 from pydantic import SecretStr
 
-from app.api.daily_checkin.models.daily import QuestionCategory
+from app.api.daily_checkin.models.daily import ArtifactSource, QuestionCategory
 from app.config import settings
 from app.db import DailyQuestion
 from app.tasks.components.clients.openai import OpenAIDaySummaryClient
@@ -61,14 +61,15 @@ def _answers() -> dict[QuestionCategory, str]:
 async def test_template_day_summary_client() -> None:
     checkin_id = uuid4()
     client = TemplateDaySummaryClient()
-    response = await client.build(
+    result = await client.build(
         checkin_id=checkin_id,
         questions=_questions(),
         answers_by_category=_answers(),
     )
-    assert response.checkin_id == checkin_id
-    assert "Too many meetings" in response.day_summary
-    assert response.recommended_actions.today_action == "Ship endpoint"
+    assert result.source is ArtifactSource.TEMPLATE
+    assert result.response.checkin_id == checkin_id
+    assert "Too many meetings" in result.response.day_summary
+    assert result.response.recommended_actions.today_action == "Ship endpoint"
 
 
 @pytest.mark.asyncio
@@ -77,12 +78,13 @@ async def test_openai_client_falls_back_without_api_key(monkeypatch: pytest.Monk
     monkeypatch.setattr(settings.openai, "api_key", SecretStr(""))
     client = OpenAIDaySummaryClient()
     checkin_id = uuid4()
-    response = await client.build(
+    result = await client.build(
         checkin_id=checkin_id,
         questions=_questions(),
         answers_by_category=_answers(),
     )
-    assert "Too many meetings" in response.day_summary
+    assert result.source is ArtifactSource.TEMPLATE
+    assert "Too many meetings" in result.response.day_summary
 
 
 @pytest.mark.asyncio
@@ -116,15 +118,16 @@ async def test_openai_client_uses_llm_payload(monkeypatch: pytest.MonkeyPatch) -
 
     with patch("app.tasks.components.clients.openai_compatible.AsyncOpenAI", return_value=fake_client):
         client = OpenAIDaySummaryClient()
-        response = await client.build(
+        result = await client.build(
             checkin_id=uuid4(),
             questions=_questions(),
             answers_by_category=_answers(),
         )
 
-    assert response.day_summary.startswith("Meetings drained focus")
-    assert response.insights.top_risk_or_blocker == "Meeting overload"
-    assert response.recommended_actions.two_checkpoints == ["Take a break", "Close one task"]
+    assert result.source is ArtifactSource.LLM
+    assert result.response.day_summary.startswith("Meetings drained focus")
+    assert result.response.insights.top_risk_or_blocker == "Meeting overload"
+    assert result.response.recommended_actions.two_checkpoints == ["Take a break", "Close one task"]
     fake_client.chat.completions.create.assert_awaited_once()
 
 
@@ -138,10 +141,11 @@ async def test_openai_client_falls_back_on_api_error(monkeypatch: pytest.MonkeyP
 
     with patch("app.tasks.components.clients.openai_compatible.AsyncOpenAI", return_value=fake_client):
         client = OpenAIDaySummaryClient()
-        response = await client.build(
+        result = await client.build(
             checkin_id=uuid4(),
             questions=_questions(),
             answers_by_category=_answers(),
         )
 
-    assert "Too many meetings" in response.day_summary
+    assert result.source is ArtifactSource.TEMPLATE
+    assert "Too many meetings" in result.response.day_summary

@@ -3,6 +3,8 @@ from uuid import uuid4
 
 from app.api.daily_checkin.models.daily import (
     AnswerItem,
+    ArtifactSource,
+    ArtifactStatus,
     CheckinStatus,
     QuestionCategory,
     RequestState,
@@ -61,9 +63,11 @@ def test_attach_answers_and_artifact() -> None:
         checkin,
         answers=[AnswerItem(question_id=Q_RISK_01, answer_text="Meetings")],
         structured_summary={"day_summary": "ok"},
+        source=ArtifactSource.TEMPLATE,
     )
 
     assert checkin.status == CheckinStatus.ANSWERED
+    assert checkin.artifact_status == ArtifactStatus.READY
     assert len(checkin.answers) == 1
     assert checkin.answers[0].answer_text == "Meetings"
     assert checkin.artifact is not None
@@ -115,13 +119,41 @@ def test_to_artifact_response() -> None:
                     "today_action": "Ship",
                     "two_checkpoints": ["A", "B"],
                 },
-            }
+            },
+            source=ArtifactSource.LLM,
         ),
+    )
+    checkin.artifact_status = ArtifactStatus.READY
+
+    response = to_artifact_response(checkin)
+
+    assert response.status == ArtifactStatus.READY
+    assert response.source is ArtifactSource.LLM
+
+    assert response.checkin_id == checkin_id
+    assert response.day_summary == "Done"
+    assert response.insights is not None
+    assert response.insights.top_risk_or_blocker == "Meetings"
+    assert response.recommended_actions is not None
+    assert response.recommended_actions.today_action == "Ship"
+
+
+def test_to_artifact_response_pending() -> None:
+    checkin = DailyCheckin(
+        id=uuid4(),
+        user_id=uuid4(),
+        checkin_date=date.today(),
+        status=CheckinStatus.ANSWERED,
+        artifact_status=ArtifactStatus.PENDING,
+        stress_level=3,
+        energy_level=3,
+        plan_done=3,
+        blocker_present=0,
+        learning_done=3,
     )
 
     response = to_artifact_response(checkin)
 
-    assert response.checkin_id == checkin_id
-    assert response.day_summary == "Done"
-    assert response.insights.top_risk_or_blocker == "Meetings"
-    assert response.recommended_actions.today_action == "Ship"
+    assert response.status == ArtifactStatus.PENDING
+    assert response.day_summary is None
+    assert response.source is None

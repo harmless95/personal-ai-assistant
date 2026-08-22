@@ -9,6 +9,8 @@ from fastapi import HTTPException
 from app.api.daily_checkin.models.daily import (
     AnswerCheckinRequest,
     AnswerItem,
+    ArtifactSource,
+    ArtifactStatus,
     AskCheckinRequest,
     CheckinStatus,
     QuestionCategory,
@@ -201,6 +203,7 @@ async def test_answer_handler_persists_and_returns_response(
     assert response.checkin_id == checkin_id
     assert response.insights.top_risk_or_blocker == "Too many meetings"
     assert checkin.status == CheckinStatus.ANSWERED
+    assert checkin.artifact_status == ArtifactStatus.PENDING
     assert checkin.artifact is None
     cast(AsyncMock, service.repository.save_checkin).assert_awaited_once()
     mock_enqueue.assert_awaited_once_with(str(checkin_id))
@@ -270,24 +273,65 @@ async def test_artifact_handler_returns_summary(
                 "today_action": "Ship",
                 "two_checkpoints": ["A", "B"],
             },
-        }
+        },
+        source=ArtifactSource.LLM,
     )
+    checkin.artifact_status = ArtifactStatus.READY
     service = _service(_make_repository(get_return=checkin))
 
     response = await service.artifact_handler(checkin_id=checkin_id, user_id=user_id)
 
     assert response.checkin_id == checkin_id
+    assert response.status == ArtifactStatus.READY
+    assert response.source is ArtifactSource.LLM
     assert response.day_summary == "Done"
+    assert response.insights is not None
     assert response.insights.top_risk_or_blocker == "Meetings"
+    assert response.recommended_actions is not None
     assert response.recommended_actions.today_action == "Ship"
 
 
-async def test_artifact_handler_missing_artifact(
+async def test_artifact_handler_pending(
     selected_questions: list[SelectedQuestion],
 ) -> None:
     checkin_id = uuid4()
     user_id = uuid4()
     checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
+    checkin.status = CheckinStatus.ANSWERED
+    checkin.artifact_status = ArtifactStatus.PENDING
+    checkin.artifact = None
+    service = _service(_make_repository(get_return=checkin))
+
+    response = await service.artifact_handler(checkin_id=checkin_id, user_id=user_id)
+
+    assert response.status == ArtifactStatus.PENDING
+    assert response.day_summary is None
+
+
+async def test_artifact_handler_failed(
+    selected_questions: list[SelectedQuestion],
+) -> None:
+    checkin_id = uuid4()
+    user_id = uuid4()
+    checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
+    checkin.status = CheckinStatus.ANSWERED
+    checkin.artifact_status = ArtifactStatus.FAILED
+    checkin.artifact = None
+    service = _service(_make_repository(get_return=checkin))
+
+    response = await service.artifact_handler(checkin_id=checkin_id, user_id=user_id)
+
+    assert response.status == ArtifactStatus.FAILED
+    assert response.day_summary is None
+
+
+async def test_artifact_handler_rejects_unanswered_checkin(
+    selected_questions: list[SelectedQuestion],
+) -> None:
+    checkin_id = uuid4()
+    user_id = uuid4()
+    checkin = _asked_checkin(checkin_id, selected_questions, user_id=user_id)
+    checkin.status = CheckinStatus.ASKED
     checkin.artifact = None
     service = _service(_make_repository(get_return=checkin))
 

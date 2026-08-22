@@ -18,6 +18,17 @@ class CheckinStatus(StrEnum):
     ANSWERED = "answered"
 
 
+class ArtifactStatus(StrEnum):
+    PENDING = "pending"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class ArtifactSource(StrEnum):
+    LLM = "llm"
+    TEMPLATE = "template"
+
+
 class RequestState(BaseModel):
     stress_level: int = Field(ge=1, le=5)
     energy_level: int = Field(ge=1, le=5)
@@ -96,6 +107,8 @@ class HistoryResponse(BaseModel):
 class ArtifactResponse(BaseModel):
     checkin_id: UUID
     date: date
-    day_summary: str
-    insights: DayInsights
-    recommended_actions: RecommendedActions
+    status: ArtifactStatus
+    source: ArtifactSource | None = None
+    day_summary: str | None = None
+    insights: DayInsights | None = None
+    recommended_actions: RecommendedActions | None = None

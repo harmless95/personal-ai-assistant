@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.api.auth.deps import get_current_user
 from app.api.daily_checkin.deps import get_service
-from app.api.daily_checkin.models.daily import CheckinStatus
+from app.api.daily_checkin.models.daily import ArtifactSource, ArtifactStatus, CheckinStatus
 from app.api.daily_checkin.services.service_daily import DailyCheckinService
 from app.db import DailyArtifact, DailyCheckin, User
 from app.main import app
@@ -85,8 +85,10 @@ def test_get_checkin_artifact_endpoint() -> None:
                 "today_action": "Ship",
                 "two_checkpoints": ["A", "B"],
             },
-        }
+        },
+        source=ArtifactSource.LLM,
     )
+    checkin.artifact_status = ArtifactStatus.READY
     repository = Mock()
     repository.get_checkin_by_id = AsyncMock(return_value=checkin)
     _override_auth_and_service(user, DailyCheckinService(repository=repository))
@@ -99,5 +101,7 @@ def test_get_checkin_artifact_endpoint() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["checkin_id"] == str(checkin.id)
+    assert body["status"] == "ready"
+    assert body["source"] == "llm"
     assert body["day_summary"] == "Done"
     assert body["insights"]["top_risk_or_blocker"] == "Meetings"

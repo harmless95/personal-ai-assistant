@@ -4,8 +4,8 @@ from uuid import uuid4
 
 import pytest
 
-from app.api.daily_checkin.models.daily import CheckinStatus, QuestionCategory
-from app.db import DailyCheckin, DailyQuestion, QuestionAnswer
+from app.api.daily_checkin.models.daily import ArtifactSource, ArtifactStatus, CheckinStatus, QuestionCategory
+from app.db import DailyArtifact, DailyCheckin, DailyQuestion, QuestionAnswer
 from app.tasks.components.clients.template import TemplateDaySummaryClient
 from app.tasks.enqueue import enqueue_day_summary
 from app.tasks.services.day_summary_processor import DaySummaryProcessor
@@ -66,13 +66,14 @@ async def test_day_summary_processor_saves_artifact() -> None:
     await processor.process_checkin(checkin_id=checkin_id)
 
     assert checkin.artifact is not None
+    assert checkin.artifact_status == ArtifactStatus.READY
+    assert checkin.artifact.source == ArtifactSource.TEMPLATE
     assert "Meetings" in checkin.artifact.structured_summary_json["day_summary"]
     repository.save_checkin.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_day_summary_processor_skips_when_artifact_exists() -> None:
-    from app.db import DailyArtifact
 
     checkin_id = uuid4()
     checkin = DailyCheckin(
@@ -84,8 +85,12 @@ async def test_day_summary_processor_skips_when_artifact_exists() -> None:
         plan_done=3,
         blocker_present=0,
         learning_done=3,
-        artifact=DailyArtifact(structured_summary_json={"day_summary": "done"}),
+        artifact=DailyArtifact(
+            structured_summary_json={"day_summary": "done"},
+            source=ArtifactSource.TEMPLATE,
+        ),
     )
+    checkin.artifact_status = ArtifactStatus.READY
     repository: Any = Mock()
     repository.get_checkin_by_id = AsyncMock(return_value=checkin)
     repository.save_checkin = AsyncMock()

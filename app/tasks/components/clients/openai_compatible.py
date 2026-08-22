@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from app.api.daily_checkin.models.daily import (
     AnswerCheckinResponse,
+    ArtifactSource,
     DayInsights,
     QuestionCategory,
     RecommendedActions,
@@ -14,6 +15,7 @@ from app.api.daily_checkin.models.daily import (
 from app.api.daily_checkin.utils.summary import build_answer_response
 from app.db import DailyQuestion
 from app.tasks.components.clients.base import DaySummaryClient
+from app.tasks.components.models.day_summary import DaySummaryBuildResult
 from app.tasks.components.prompts.system_prompts import SYSTEM_PROMPT
 
 logger = structlog.get_logger(__name__)
@@ -64,7 +66,7 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
         checkin_id: UUID,
         questions: Sequence[DailyQuestion],
         answers_by_category: Mapping[QuestionCategory, str],
-    ) -> AnswerCheckinResponse:
+    ) -> DaySummaryBuildResult:
         fallback = build_answer_response(
             checkin_id=checkin_id,
             answers_by_category=dict(answers_by_category),
@@ -75,7 +77,7 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
                 provider=self._provider,
                 reason="disabled_or_missing_config",
             )
-            return fallback
+            return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE)
 
         user_prompt = self._build_user_prompt(questions, answers_by_category)
         try:
@@ -96,7 +98,7 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
                 checkin_id=str(checkin_id),
                 exc_info=True,
             )
-            return fallback
+            return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE)
 
         content = chat_completion.choices[0].message.content
         if not content:
@@ -105,7 +107,7 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
                 provider=self._provider,
                 checkin_id=str(checkin_id),
             )
-            return fallback
+            return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE)
 
         try:
             payload = LlmDaySummaryPayload.model_validate_json(content)
@@ -116,7 +118,7 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
                 checkin_id=str(checkin_id),
                 exc_info=True,
             )
-            return fallback
+            return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE)
 
         logger.info(
             "day_summary_llm_ok",
@@ -124,12 +126,15 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
             checkin_id=str(checkin_id),
             model=self._model,
         )
-        return AnswerCheckinResponse(
-            checkin_id=checkin_id,
-            answers_received=True,
-            day_summary=payload.day_summary,
-            insights=payload.insights,
-            recommended_actions=payload.recommended_actions,
+        return DaySummaryBuildResult(
+            response=AnswerCheckinResponse(
+                checkin_id=checkin_id,
+                answers_received=True,
+                day_summary=payload.day_summary,
+                insights=payload.insights,
+                recommended_actions=payload.recommended_actions,
+            ),
+            source=ArtifactSource.LLM,
         )
 
     @staticmethod

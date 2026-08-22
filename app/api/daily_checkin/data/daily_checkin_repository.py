@@ -131,5 +131,8 @@ class DailyCheckinRepository:
     @handle_db_errors
     async def save_checkin(self, checkin: DailyCheckin) -> DailyCheckin:
         await self.__session.flush()
-        await self.__session.refresh(checkin, attribute_names=["status", "answers", "artifact"])
+        await self.__session.refresh(
+            checkin,
+            attribute_names=["status", "artifact_status", "answers", "artifact"],
+        )
         return checkin
