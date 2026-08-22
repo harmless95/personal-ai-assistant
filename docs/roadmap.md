@@ -14,12 +14,12 @@ This document tracks planned work that is not implemented yet.
 - Provider-pluggable day summary clients (`openai` / `template`) with shared OpenAI-compatible layer.
 - Docker image + Compose services for `db` / `redis` / `migrate` / `backend` / `worker`.
 - Structlog + CI (lint/tests on push and PR).
+- FK from `daily_checkins.user_id` to `users.id` (`ON DELETE RESTRICT`).
 
 ## Next
 
 - LLM usage metrics (tokens, estimated cost, latency) for day-summary worker calls.
 - Optional SSE notify when artifact becomes ready.
-- FK from `daily_checkins.user_id` to `users.id`.
 
 ## Later
 

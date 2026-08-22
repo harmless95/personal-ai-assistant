@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.db.models.daily_checkin import DailyCheckin
     from app.db.models.refresh_token import RefreshToken
 
 
@@ -27,3 +28,4 @@ class User(Base):
     )
 
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship("RefreshToken", back_populates="user")
+    daily_checkins: Mapped[list["DailyCheckin"]] = relationship("DailyCheckin", back_populates="user")
