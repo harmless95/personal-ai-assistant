@@ -15,10 +15,10 @@ This document tracks planned work that is not implemented yet.
 - Docker image + Compose services for `db` / `redis` / `migrate` / `backend` / `worker`.
 - Structlog + CI (lint/tests on push and PR).
 - FK from `daily_checkins.user_id` to `users.id` (`ON DELETE RESTRICT`).
+- LLM usage metrics (tokens, estimated cost, latency) logged from day-summary worker calls.
 
 ## Next
 
-- LLM usage metrics (tokens, estimated cost, latency) for day-summary worker calls.
 - Optional SSE notify when artifact becomes ready.
 
 ## Later
@@ -35,6 +35,5 @@ This document tracks planned work that is not implemented yet.
 
 Future `.env.example` sections will be added when corresponding features are implemented:
 
-- LLM metrics / pricing settings
 - RAG/index settings
 - Knowledge service URL (when split from the API process)

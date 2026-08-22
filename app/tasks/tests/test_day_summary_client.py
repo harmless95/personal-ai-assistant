@@ -10,6 +10,7 @@ from app.config import settings
 from app.db import DailyQuestion
 from app.tasks.components.clients.openai import OpenAIDaySummaryClient
 from app.tasks.components.clients.template import TemplateDaySummaryClient
+from app.tasks.components.models.day_summary import DaySummaryLlmOutcome
 
 
 def _questions() -> list[DailyQuestion]:
@@ -70,6 +71,8 @@ async def test_template_day_summary_client() -> None:
     assert result.response.checkin_id == checkin_id
     assert "Too many meetings" in result.response.day_summary
     assert result.response.recommended_actions.today_action == "Ship endpoint"
+    assert result.metrics.outcome is DaySummaryLlmOutcome.TEMPLATE
+    assert result.metrics.latency_ms is None
 
 
 @pytest.mark.asyncio
@@ -85,6 +88,7 @@ async def test_openai_client_falls_back_without_api_key(monkeypatch: pytest.Monk
     )
     assert result.source is ArtifactSource.TEMPLATE
     assert "Too many meetings" in result.response.day_summary
+    assert result.metrics.outcome is DaySummaryLlmOutcome.SKIPPED
 
 
 @pytest.mark.asyncio
@@ -112,6 +116,9 @@ async def test_openai_client_uses_llm_payload(monkeypatch: pytest.MonkeyPatch) -
     choice.message.content = payload
     completion = MagicMock()
     completion.choices = [choice]
+    completion.usage.prompt_tokens = 100
+    completion.usage.completion_tokens = 50
+    completion.usage.total_tokens = 150
 
     fake_client = MagicMock()
     fake_client.chat.completions.create = AsyncMock(return_value=completion)
@@ -128,6 +135,12 @@ async def test_openai_client_uses_llm_payload(monkeypatch: pytest.MonkeyPatch) -
     assert result.response.day_summary.startswith("Meetings drained focus")
     assert result.response.insights.top_risk_or_blocker == "Meeting overload"
     assert result.response.recommended_actions.two_checkpoints == ["Take a break", "Close one task"]
+    assert result.metrics.outcome is DaySummaryLlmOutcome.LLM_OK
+    assert result.metrics.prompt_tokens == 100
+    assert result.metrics.completion_tokens == 50
+    assert result.metrics.total_tokens == 150
+    assert result.metrics.latency_ms is not None
+    assert result.metrics.estimated_cost_usd is not None
     fake_client.chat.completions.create.assert_awaited_once()
 
 
@@ -149,3 +162,5 @@ async def test_openai_client_falls_back_on_api_error(monkeypatch: pytest.MonkeyP
 
     assert result.source is ArtifactSource.TEMPLATE
     assert "Too many meetings" in result.response.day_summary
+    assert result.metrics.outcome is DaySummaryLlmOutcome.REQUEST_FAILED
+    assert result.metrics.latency_ms is not None

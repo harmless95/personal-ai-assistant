@@ -12,4 +12,6 @@ class OpenAIDaySummaryClient(OpenAICompatibleDaySummaryClient):
             model=settings.openai.model,
             max_completion_tokens=settings.openai.max_completion_tokens,
             enabled=settings.openai.enabled and bool(api_key),
+            input_price_per_1m_tokens=settings.openai.input_price_per_1m_tokens,
+            output_price_per_1m_tokens=settings.openai.output_price_per_1m_tokens,
         )

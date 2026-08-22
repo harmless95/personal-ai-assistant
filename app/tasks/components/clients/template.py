@@ -5,7 +5,12 @@ from app.api.daily_checkin.models.daily import ArtifactSource, QuestionCategory
 from app.api.daily_checkin.utils.summary import build_answer_response
 from app.db import DailyQuestion
 from app.tasks.components.clients.base import DaySummaryClient
-from app.tasks.components.models.day_summary import DaySummaryBuildResult
+from app.tasks.components.models.day_summary import (
+    DaySummaryBuildResult,
+    DaySummaryLlmOutcome,
+    DaySummaryUsageMetrics,
+)
+from app.tasks.components.providers import DaySummaryProvider
 
 
 class TemplateDaySummaryClient(DaySummaryClient):
@@ -23,4 +28,8 @@ class TemplateDaySummaryClient(DaySummaryClient):
                 answers_by_category=dict(answers_by_category),
             ),
             source=ArtifactSource.TEMPLATE,
+            metrics=DaySummaryUsageMetrics(
+                outcome=DaySummaryLlmOutcome.TEMPLATE,
+                provider=DaySummaryProvider.TEMPLATE.value,
+            ),
         )

@@ -73,6 +73,8 @@ class OpenAIConfig(BaseModel):
     model: str = "gpt-4.1-mini"
     max_completion_tokens: int = 1024
     enabled: bool = True
+    input_price_per_1m_tokens: float = 0.40
+    output_price_per_1m_tokens: float = 1.60
 
 
 class RedisConfig(BaseModel):

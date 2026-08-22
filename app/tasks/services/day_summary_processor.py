@@ -65,4 +65,5 @@ class DaySummaryProcessor:
             checkin_id=str(checkin_id),
             source=build_result.source.value,
             categories=sorted(category.value for category in answers_by_category),
+            **build_result.metrics.as_log_fields(),
         )
