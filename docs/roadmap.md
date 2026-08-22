@@ -16,10 +16,12 @@ This document tracks planned work that is not implemented yet.
 - Structlog + CI (lint/tests on push and PR).
 - FK from `daily_checkins.user_id` to `users.id` (`ON DELETE RESTRICT`).
 - LLM usage metrics (tokens, estimated cost, latency) logged from day-summary worker calls.
+- Telegram bot MVP (`/login`, `/checkin`, `/history`) calling the HTTP API via httpx.
 
 ## Next
 
-- Optional SSE notify when artifact becomes ready.
+- Optional SSE notify when artifact becomes ready (useful for web clients).
+- LLM Gateway service over gRPC (optional training/architecture step).
 
 ## Later
 
@@ -37,3 +39,4 @@ Future `.env.example` sections will be added when corresponding features are imp
 
 - RAG/index settings
 - Knowledge service URL (when split from the API process)
+- LLM gateway gRPC address (when split)

@@ -111,6 +111,13 @@ class DaySummaryConfig(BaseModel):
     provider: str = "openai"
 
 
+class TelegramConfig(BaseModel):
+    bot_token: SecretStr = SecretStr("")
+    api_base_url: str = "http://127.0.0.1:8000"
+    artifact_poll_interval_seconds: float = 2.0
+    artifact_poll_timeout_seconds: float = 90.0
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
@@ -123,6 +130,7 @@ class Settings(BaseSettings):
     auth_jwt: AuthJWTConfig = AuthJWTConfig()
     openai: OpenAIConfig = OpenAIConfig()
     day_summary: DaySummaryConfig = DaySummaryConfig()
+    telegram: TelegramConfig = TelegramConfig()
     redis: RedisConfig = RedisConfig()
     taskiq: TaskiqConfig = TaskiqConfig()
     host: HostConfig = HostConfig()

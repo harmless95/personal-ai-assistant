@@ -98,5 +98,20 @@ services:
       backend:
         condition: service_started
 
+  bot:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: personal_ai_bot
+    entrypoint: python -m app.bot
+    environment:
+      - TELEGRAM__API_BASE_URL=${TELEGRAM__API_BASE_URL:-http://backend:8000}
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      backend:
+        condition: service_started
+
 volumes:
   postgres_data:

@@ -34,7 +34,8 @@ Implemented in this repository right now:
 - test tooling (`pytest`, `pytest-asyncio`, `pytest-cov`);
 - pre-commit hooks;
 - CI workflow for lint and tests;
-- Docker image and Compose (`db` / `redis` / `migrate` / `backend` / `worker`).
+- Docker image and Compose (`db` / `redis` / `migrate` / `backend` / `worker` / `bot`);
+- Telegram bot MVP (`/login`, `/checkin`, `/history`) as an HTTP client of the API.
 
 ## Local Setup
 
@@ -85,13 +86,27 @@ From the repository root (uses `.env`):
 docker compose -f Docker-compose.yml up -d --build
 ```
 
-This starts Postgres, Redis, migrations, API, and the Taskiq worker.
+This starts Postgres, Redis, migrations, API, the Taskiq worker, and (if `TELEGRAM__BOT_TOKEN` is set) the Telegram bot.
 
 Worker (day summary LLM):
 
 ```bash
 taskiq worker app.tasks.broker_taskiq:broker
 ```
+
+Telegram bot (local, API must be running):
+
+```bash
+# 1) Set TELEGRAM__BOT_TOKEN in .env (from @BotFather)
+# 2) Register a user via Swagger: POST /api/v1/auth/register
+python -m app.bot
+```
+
+In Telegram:
+- `/login email password` (or `/login` then follow prompts)
+- `/checkin` — state buttons → 5 questions → day summary
+- `/history` — recent check-ins
+- `/cancel` — reset dialog
 
 Postgres only:
 
