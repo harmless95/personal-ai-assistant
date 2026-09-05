@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:18.4-alpine
+    image: pgvector/pgvector:pg18
     container_name: db
     environment:
       - POSTGRES_DB=${DB__POSTGRES_DB:-postgres}
