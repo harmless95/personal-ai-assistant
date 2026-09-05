@@ -16,6 +16,7 @@ dependencies = [
     "greenlet>=3.5.5",
     "httpx>=0.28.1",
     "openai>=2.53.0",
+    "pgvector>=0.5.0",
     "pydantic-settings>=2.15.0",
     "pyjwt>=2.12.1",
     "python-multipart>=0.0.27",
@@ -47,7 +48,7 @@ select = ["E", "F", "I"]
 fixable = ["ALL"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["app"]
+known-first-party = ["app", "knowledge_services"]
 
 [tool.mypy]
 python_version = "3.12"
