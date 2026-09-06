@@ -56,12 +56,12 @@ strict = true
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-addopts = "--cov=app --cov-report=term-missing"
-testpaths = ["app"]
+addopts = "--cov=app --cov=knowledge_services --cov-report=term-missing"
+testpaths = ["app", "knowledge_services"]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["app"]
+source = ["app", "knowledge_services"]
 omit = [
     "*/tests/*",
     "*/__init__.py",
