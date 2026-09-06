@@ -35,7 +35,8 @@ Implemented in this repository right now:
 - pre-commit hooks;
 - CI workflow for lint and tests;
 - Docker image and Compose (`db` / `redis` / `migrate` / `backend` / `worker` / `bot`);
-- Telegram bot MVP (`/login`, `/checkin`, `/history`) as an HTTP client of the API.
+- Telegram bot MVP (`/login`, `/checkin`, `/history`) as an HTTP client of the API;
+- Knowledge/RAG package (`knowledge_services`): chunking, Ollama embeddings, pgvector store, ingest/retrieve (not wired into the worker yet).
 
 ## Local Setup
 
@@ -75,8 +76,11 @@ DB__POSTGRES_PORT=5432
 DB__POSTGRES_DB=personal_ai_assistant
 ```
 
-Variables are loaded via `pydantic-settings` with nested delimiter `__` (see `app/config.py`).  
+Variables are loaded via `pydantic-settings` with nested delimiter `__` (see `app/config.py` and `knowledge_services/config.py`).  
 `DB__POSTGRES_*` values must match the PostgreSQL container credentials.
+
+**Host tip:** when you run Python on the machine (API, Alembic, smoke scripts), keep `DB__POSTGRES_HOST=localhost`.  
+Use `DB__POSTGRES_HOST=db` only for processes **inside** Docker Compose (that hostname exists only on the Compose network).
 
 ### 2. Start stack with Docker
 
@@ -122,7 +126,50 @@ If you run the API on the host against Docker Postgres:
 alembic -c app/alembic.ini upgrade head
 ```
 
-### 4. Run the application (local)
+Ensure the database name from `.env` exists (default `personal_ai_assistant`). If Postgres was first started with another `DB__POSTGRES_DB`, create it once:
+
+```bash
+docker exec -it db psql -U postgres -c "CREATE DATABASE personal_ai_assistant;"
+```
+
+### 4. Knowledge / RAG smoke check (optional)
+
+End-to-end check for `knowledge_services` (chunk → Ollama embed → pgvector → search).
+
+Before running on the host, in `.env`:
+
+```env
+DB__POSTGRES_HOST=localhost
+DB__POSTGRES_PORT=5432
+DB__POSTGRES_DB=personal_ai_assistant
+DB__POSTGRES_USER=postgres
+DB__POSTGRES_PASSWORD=secret
+```
+
+Also:
+
+1. Postgres is up (`docker compose -f Docker-compose.yml up -d db`) and migrations are applied.
+2. [Ollama](https://ollama.com/) is running locally.
+3. Embedding model is pulled (must match `knowledge_services` config / `vector(768)`):
+
+```bash
+ollama pull nomic-embed-text
+```
+
+Then from the repository root:
+
+```bash
+# Git Bash / macOS / Linux
+PYTHONPATH=. uv run python scripts/smoke_rag.py
+
+# PowerShell
+$env:PYTHONPATH="."
+uv run python scripts/smoke_rag.py
+```
+
+On success you should see a line like `smoke.md 1 Asyncio create_task...`.
+
+### 5. Run the application (local)
 
 From the repository root:
 
