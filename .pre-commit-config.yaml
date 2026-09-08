@@ -6,6 +6,7 @@ repos:
         entry: uv run ruff check
         language: system
         types: [python]
+        exclude: ^knowledge_services/grpc_gen/
 
       - id: mypy-check
         name: mypy check
