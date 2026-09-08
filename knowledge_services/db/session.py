@@ -1,4 +1,5 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -26,8 +27,12 @@ async def dispose() -> None:
     await async_engine.dispose()
 
 
-async def session_getter() -> AsyncGenerator[AsyncSession, None]:
-    session = SessionFactory()
+@asynccontextmanager
+async def session_scope(
+    session_factory: async_sessionmaker[AsyncSession] | None = None,
+) -> AsyncIterator[AsyncSession]:
+    factory = session_factory or SessionFactory
+    session = factory()
     try:
         yield session
         await session.commit()
@@ -36,3 +41,8 @@ async def session_getter() -> AsyncGenerator[AsyncSession, None]:
         raise
     finally:
         await session.close()
+
+
+async def session_getter() -> AsyncGenerator[AsyncSession, None]:
+    async with session_scope() as session:
+        yield session
