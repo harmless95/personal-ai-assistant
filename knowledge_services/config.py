@@ -9,6 +9,7 @@ DATA_DIR = Path(__file__).resolve().parent / "data"
 class RunAppConfig(BaseModel):
     host: str = "localhost"
     port: int = 8080
+    grpc_port: int = 50051
 
 
 class DbConfig(BaseModel):
