@@ -14,6 +14,8 @@ dependencies = [
     "fastapi>=0.141.1",
     "fastapi-structlog>=0.7.1",
     "greenlet>=3.5.5",
+    "grpcio>=1.83.1",
+    "grpcio-tools>=1.83.1",
     "httpx>=0.28.1",
     "openai>=2.53.0",
     "pgvector>=0.5.0",
@@ -42,6 +44,7 @@ dev = [
 [tool.ruff]
 target-version = "py312"
 line-length = 120
+extend-exclude = ["knowledge_services/grpc_gen"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
@@ -54,6 +57,7 @@ known-first-party = ["app", "knowledge_services"]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+exclude = ["knowledge_services/grpc_gen/"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=app --cov=knowledge_services --cov-report=term-missing"
@@ -65,6 +69,7 @@ source = ["app", "knowledge_services"]
 omit = [
     "*/tests/*",
     "*/__init__.py",
+    "*/grpc_gen/*",
 ]
 
 [tool.coverage.report]

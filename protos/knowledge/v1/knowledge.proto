@@ -1,0 +1,34 @@
+syntax = "proto3";
+package knowledge.v1;
+
+service KnowledgeService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc IngestText(IngestTextRequest) returns (IngestTextResponse);
+}
+
+message HealthRequest {}
+message HealthResponse { bool ok = 1; }
+
+message SearchRequest {
+  string query = 1;
+  int32 top_k = 2;
+}
+
+message Chunk {
+  string chunk_id = 1;
+  string source = 2;
+  int32 chunk_index = 3;
+  string text = 4;
+  repeated string tags = 5;
+}
+
+message SearchResponse { repeated Chunk chunks = 1; }
+
+message IngestTextRequest {
+  string text = 1;
+  string source = 2;
+  repeated string tags = 3;
+}
+
+message IngestTextResponse { int32 chunks_saved = 1; }
