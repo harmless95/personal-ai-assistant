@@ -7,6 +7,7 @@ from taskiq import TaskiqDepends
 from app.api.daily_checkin.data.daily_checkin_repository import DailyCheckinRepository
 from app.config import settings
 from app.db.session import session_getter
+from app.knowledge import KnowledgeGrpcClient, get_knowledge_client
 from app.tasks.components.clients.base import DaySummaryClient
 from app.tasks.components.clients.openai import OpenAIDaySummaryClient
 from app.tasks.components.clients.template import TemplateDaySummaryClient
@@ -43,12 +44,19 @@ def get_summary_client(provider: str | None = None) -> DaySummaryClient:
 
 DaySummaryClientDep = Annotated[DaySummaryClient, TaskiqDepends(get_summary_client)]
 
+KnowledgeClientDep = Annotated[KnowledgeGrpcClient, TaskiqDepends(get_knowledge_client)]
+
 
 def get_day_summary_processor(
     repository: DailyCheckinRepositoryDep,
     summary_client: DaySummaryClientDep,
+    knowledge_client: KnowledgeClientDep,
 ) -> DaySummaryProcessor:
-    return DaySummaryProcessor(repository=repository, summary_client=summary_client)
+    return DaySummaryProcessor(
+        repository=repository,
+        summary_client=summary_client,
+        knowledge_client=knowledge_client,
+    )
 
 
 DaySummaryProcessorDep = Annotated[DaySummaryProcessor, TaskiqDepends(get_day_summary_processor)]

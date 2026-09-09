@@ -15,6 +15,7 @@ from app.api.daily_checkin.models.daily import (
 )
 from app.api.daily_checkin.utils.summary import build_answer_response
 from app.db import DailyQuestion
+from app.knowledge.models import KnowledgeChunkHit
 from app.tasks.components.clients.base import DaySummaryClient
 from app.tasks.components.models.day_summary import (
     DaySummaryBuildResult,
@@ -76,6 +77,7 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
         checkin_id: UUID,
         questions: Sequence[DailyQuestion],
         answers_by_category: Mapping[QuestionCategory, str],
+        knowledge_chunks: Sequence[KnowledgeChunkHit] = (),
     ) -> DaySummaryBuildResult:
         fallback = build_answer_response(
             checkin_id=checkin_id,
@@ -95,7 +97,11 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
             )
             return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE, metrics=metrics)
 
-        user_prompt = self._build_user_prompt(questions, answers_by_category)
+        user_prompt = self._build_user_prompt(
+            questions,
+            answers_by_category,
+            knowledge_chunks=knowledge_chunks,
+        )
         started_at = perf_counter()
         try:
             chat_completion = await self._client.chat.completions.create(
@@ -216,6 +222,8 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
     def _build_user_prompt(
         questions: Sequence[DailyQuestion],
         answers_by_category: Mapping[QuestionCategory, str],
+        *,
+        knowledge_chunks: Sequence[KnowledgeChunkHit] = (),
     ) -> str:
         lines = ["Daily check-in answers:"]
         ordered = sorted(questions, key=lambda question: question.sort_order)
@@ -224,4 +232,9 @@ class OpenAICompatibleDaySummaryClient(DaySummaryClient):
             answer = answers_by_category.get(category, "")
             lines.append(f"- [{category.value}] Q: {question.text}")
             lines.append(f"  A: {answer}")
+        if knowledge_chunks:
+            lines.append("")
+            lines.append("Context from knowledge base:")
+            for chunk in knowledge_chunks:
+                lines.append(f"- ({chunk.source}) {chunk.text}")
         return "\n".join(lines)

@@ -41,7 +41,9 @@ def test_get_summary_client_unknown_provider() -> None:
 def test_get_day_summary_processor() -> None:
     repo = Mock()
     summary_client = Mock()
-    processor = get_day_summary_processor(repo, summary_client)
+    knowledge_client = Mock()
+    processor = get_day_summary_processor(repo, summary_client, knowledge_client)
     assert isinstance(processor, DaySummaryProcessor)
     assert processor.repository is repo
     assert processor.summary_client is summary_client
+    assert processor.knowledge_client is knowledge_client

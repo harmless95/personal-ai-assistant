@@ -1,12 +1,16 @@
+from collections.abc import Mapping
 from uuid import UUID
 
 import structlog
 
 from app.api.daily_checkin.data.daily_checkin_repository import DailyCheckinRepository
-from app.api.daily_checkin.models.daily import AnswerItem, ArtifactStatus
+from app.api.daily_checkin.models.daily import AnswerItem, ArtifactStatus, QuestionCategory
 from app.api.daily_checkin.utils.checkin import attach_artifact, mark_artifact_failed
 from app.api.daily_checkin.utils.summary import map_answers_by_category, structured_summary_from_response
+from app.knowledge import KnowledgeGrpcClient, KnowledgeSearchError
+from app.knowledge.models import KnowledgeChunkHit
 from app.tasks.components.clients.base import DaySummaryClient
+from app.tasks.services.knowledge_query import build_knowledge_query
 
 logger = structlog.get_logger(__name__)
 
@@ -16,9 +20,11 @@ class DaySummaryProcessor:
         self,
         repository: DailyCheckinRepository,
         summary_client: DaySummaryClient,
+        knowledge_client: KnowledgeGrpcClient,
     ):
         self.repository = repository
         self.summary_client = summary_client
+        self.knowledge_client = knowledge_client
 
     async def process_checkin(self, checkin_id: UUID) -> None:
         checkin = await self.repository.get_checkin_by_id(
@@ -49,10 +55,15 @@ class DaySummaryProcessor:
             await self.repository.save_checkin(checkin=checkin)
             return
 
+        knowledge_chunks = await self._fetch_knowledge_chunks(
+            checkin_id=checkin.id,
+            answers_by_category=answers_by_category,
+        )
         build_result = await self.summary_client.build(
             checkin_id=checkin.id,
             questions=checkin.questions,
             answers_by_category=answers_by_category,
+            knowledge_chunks=knowledge_chunks,
         )
         attach_artifact(
             checkin,
@@ -65,5 +76,33 @@ class DaySummaryProcessor:
             checkin_id=str(checkin_id),
             source=build_result.source.value,
             categories=sorted(category.value for category in answers_by_category),
+            knowledge_chunks=len(knowledge_chunks),
             **build_result.metrics.as_log_fields(),
         )
+
+    async def _fetch_knowledge_chunks(
+        self,
+        *,
+        checkin_id: UUID,
+        answers_by_category: Mapping[QuestionCategory, str],
+    ) -> list[KnowledgeChunkHit]:
+        query = build_knowledge_query(answers_by_category)
+        if not query:
+            return []
+        try:
+            chunks = await self.knowledge_client.search(query)
+        except KnowledgeSearchError:
+            logger.warning(
+                "day_summary_knowledge_search_failed",
+                checkin_id=str(checkin_id),
+                exc_info=True,
+            )
+            return []
+
+        logger.info(
+            "day_summary_knowledge_retrieved",
+            checkin_id=str(checkin_id),
+            chunks=len(chunks),
+            query_preview=query[:120],
+        )
+        return chunks

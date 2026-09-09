@@ -1,35 +1,24 @@
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
 from app.api.daily_checkin.models.daily import ArtifactSource, ArtifactStatus, CheckinStatus, QuestionCategory
 from app.db import DailyArtifact, DailyCheckin, DailyQuestion, QuestionAnswer
+from app.knowledge import KnowledgeGrpcClient
+from app.knowledge.client import KnowledgeSearchError
+from app.knowledge.models import KnowledgeChunkHit
 from app.tasks.components.clients.template import TemplateDaySummaryClient
 from app.tasks.enqueue import enqueue_day_summary
 from app.tasks.services.day_summary_processor import DaySummaryProcessor
 
 
-@pytest.mark.asyncio
-async def test_enqueue_day_summary_success() -> None:
-    with patch("app.tasks.enqueue.process_day_summary.kiq", new_callable=AsyncMock) as mock_kiq:
-        assert await enqueue_day_summary("checkin-id") is True
-        mock_kiq.assert_awaited_once_with("checkin-id")
+def _disabled_knowledge_client() -> KnowledgeGrpcClient:
+    return KnowledgeGrpcClient(target="localhost:50051", enabled=False)
 
 
-@pytest.mark.asyncio
-async def test_enqueue_day_summary_failure() -> None:
-    with patch(
-        "app.tasks.enqueue.process_day_summary.kiq",
-        new_callable=AsyncMock,
-        side_effect=RuntimeError("redis down"),
-    ):
-        assert await enqueue_day_summary("checkin-id") is False
-
-
-@pytest.mark.asyncio
-async def test_day_summary_processor_saves_artifact() -> None:
+def _sample_checkin() -> tuple[UUID, DailyCheckin]:
     checkin_id = uuid4()
     checkin = DailyCheckin(
         id=checkin_id,
@@ -57,11 +46,37 @@ async def test_day_summary_processor_saves_artifact() -> None:
         QuestionAnswer(question_id=checkin.questions[3].question_id, answer_text="Learned scoring"),
         QuestionAnswer(question_id=checkin.questions[4].question_id, answer_text="Ship"),
     ]
+    return checkin_id, checkin
 
+
+@pytest.mark.asyncio
+async def test_enqueue_day_summary_success() -> None:
+    with patch("app.tasks.enqueue.process_day_summary.kiq", new_callable=AsyncMock) as mock_kiq:
+        assert await enqueue_day_summary("checkin-id") is True
+        mock_kiq.assert_awaited_once_with("checkin-id")
+
+
+@pytest.mark.asyncio
+async def test_enqueue_day_summary_failure() -> None:
+    with patch(
+        "app.tasks.enqueue.process_day_summary.kiq",
+        new_callable=AsyncMock,
+        side_effect=RuntimeError("redis down"),
+    ):
+        assert await enqueue_day_summary("checkin-id") is False
+
+
+@pytest.mark.asyncio
+async def test_day_summary_processor_saves_artifact() -> None:
+    checkin_id, checkin = _sample_checkin()
     repository: Any = Mock()
     repository.get_checkin_by_id = AsyncMock(return_value=checkin)
     repository.save_checkin = AsyncMock(return_value=checkin)
-    processor = DaySummaryProcessor(repository=repository, summary_client=TemplateDaySummaryClient())
+    processor = DaySummaryProcessor(
+        repository=repository,
+        summary_client=TemplateDaySummaryClient(),
+        knowledge_client=_disabled_knowledge_client(),
+    )
 
     await processor.process_checkin(checkin_id=checkin_id)
 
@@ -73,8 +88,62 @@ async def test_day_summary_processor_saves_artifact() -> None:
 
 
 @pytest.mark.asyncio
-async def test_day_summary_processor_skips_when_artifact_exists() -> None:
+async def test_day_summary_processor_passes_knowledge_chunks() -> None:
+    checkin_id, checkin = _sample_checkin()
+    hit = KnowledgeChunkHit(
+        chunk_id="1",
+        source="tips.md",
+        chunk_index=0,
+        text="Take breaks every hour.",
+        tags=("energy",),
+    )
+    knowledge_client = Mock()
+    knowledge_client.search = AsyncMock(return_value=[hit])
+    real_summary = TemplateDaySummaryClient()
+    summary_client = AsyncMock(wraps=real_summary)
+    summary_client.build = AsyncMock(side_effect=real_summary.build)
 
+    repository: Any = Mock()
+    repository.get_checkin_by_id = AsyncMock(return_value=checkin)
+    repository.save_checkin = AsyncMock(return_value=checkin)
+    processor = DaySummaryProcessor(
+        repository=repository,
+        summary_client=summary_client,
+        knowledge_client=knowledge_client,
+    )
+
+    await processor.process_checkin(checkin_id=checkin_id)
+
+    knowledge_client.search.assert_awaited_once()
+    assert "Meetings" in knowledge_client.search.await_args.args[0]
+    build_kwargs = summary_client.build.await_args.kwargs
+    assert build_kwargs["knowledge_chunks"] == [hit]
+    assert checkin.artifact_status == ArtifactStatus.READY
+
+
+@pytest.mark.asyncio
+async def test_day_summary_processor_continues_when_knowledge_fails() -> None:
+    checkin_id, checkin = _sample_checkin()
+    knowledge_client = Mock()
+    knowledge_client.search = AsyncMock(side_effect=KnowledgeSearchError("down"))
+    repository: Any = Mock()
+    repository.get_checkin_by_id = AsyncMock(return_value=checkin)
+    repository.save_checkin = AsyncMock(return_value=checkin)
+    processor = DaySummaryProcessor(
+        repository=repository,
+        summary_client=TemplateDaySummaryClient(),
+        knowledge_client=knowledge_client,
+    )
+
+    await processor.process_checkin(checkin_id=checkin_id)
+
+    assert checkin.artifact is not None
+    assert checkin.artifact_status == ArtifactStatus.READY
+    repository.save_checkin.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_day_summary_processor_skips_when_artifact_exists() -> None:
     checkin_id = uuid4()
     checkin = DailyCheckin(
         id=checkin_id,
@@ -94,7 +163,11 @@ async def test_day_summary_processor_skips_when_artifact_exists() -> None:
     repository: Any = Mock()
     repository.get_checkin_by_id = AsyncMock(return_value=checkin)
     repository.save_checkin = AsyncMock()
-    processor = DaySummaryProcessor(repository=repository, summary_client=TemplateDaySummaryClient())
+    processor = DaySummaryProcessor(
+        repository=repository,
+        summary_client=TemplateDaySummaryClient(),
+        knowledge_client=_disabled_knowledge_client(),
+    )
 
     await processor.process_checkin(checkin_id=checkin_id)
 

@@ -4,6 +4,7 @@ from uuid import UUID
 from app.api.daily_checkin.models.daily import ArtifactSource, QuestionCategory
 from app.api.daily_checkin.utils.summary import build_answer_response
 from app.db import DailyQuestion
+from app.knowledge.models import KnowledgeChunkHit
 from app.tasks.components.clients.base import DaySummaryClient
 from app.tasks.components.models.day_summary import (
     DaySummaryBuildResult,
@@ -20,8 +21,9 @@ class TemplateDaySummaryClient(DaySummaryClient):
         checkin_id: UUID,
         questions: Sequence[DailyQuestion],
         answers_by_category: Mapping[QuestionCategory, str],
+        knowledge_chunks: Sequence[KnowledgeChunkHit] = (),
     ) -> DaySummaryBuildResult:
-        _ = questions
+        _ = questions, knowledge_chunks
         return DaySummaryBuildResult(
             response=build_answer_response(
                 checkin_id=checkin_id,
