@@ -34,9 +34,9 @@ Implemented in this repository right now:
 - test tooling (`pytest`, `pytest-asyncio`, `pytest-cov`);
 - pre-commit hooks;
 - CI workflow for lint and tests;
-- Docker image and Compose (`db` / `redis` / `migrate` / `backend` / `worker` / `bot`);
+- Docker image and Compose (`db` / `redis` / `migrate` / `backend` / `worker` / `knowledge` / `bot`);
 - Telegram bot MVP (`/login`, `/checkin`, `/history`) as an HTTP client of the API;
-- Knowledge/RAG package (`knowledge_services`): chunking, Ollama embeddings, pgvector store, ingest/retrieve (not wired into the worker yet).
+- Knowledge/RAG package (`knowledge_services`): chunking, Ollama embeddings, pgvector store, gRPC `Health`/`Search`/`IngestText` (not wired into the worker yet).
 
 ## Local Setup
 
@@ -90,7 +90,9 @@ From the repository root (uses `.env`):
 docker compose -f Docker-compose.yml up -d --build
 ```
 
-This starts Postgres, Redis, migrations, API, the Taskiq worker, and (if `TELEGRAM__BOT_TOKEN` is set) the Telegram bot.
+This starts Postgres, Redis, migrations, API, the Taskiq worker, the Knowledge gRPC service (`:50051`), and (if `TELEGRAM__BOT_TOKEN` is set) the Telegram bot.
+
+Inside Compose, Knowledge uses `DB__POSTGRES_HOST=db` and reaches Ollama on the host via `host.docker.internal` (override with `RAG__OLLAMA_BASE_URL` if needed).
 
 Worker (day summary LLM):
 

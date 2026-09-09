@@ -98,6 +98,35 @@ services:
       backend:
         condition: service_started
 
+  knowledge:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: personal_ai_knowledge
+    command: python -m knowledge_services
+    environment:
+      - PYTHONPATH=/app
+      - DB__POSTGRES_HOST=db
+      - DB__POSTGRES_USER=${DB__POSTGRES_USER:-postgres}
+      - DB__POSTGRES_PASSWORD=${DB__POSTGRES_PASSWORD:-secret}
+      - DB__POSTGRES_DB=${DB__POSTGRES_DB:-postgres}
+      - DB__POSTGRES_PORT=${DB__POSTGRES_PORT:-5432}
+      - RUN__GRPC_PORT=${RUN__GRPC_PORT:-50051}
+      - RAG__OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - RAG__EMBED_MODEL=${RAG__EMBED_MODEL:-nomic-embed-text}
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "${RUN__GRPC_PORT:-50051}:${RUN__GRPC_PORT:-50051}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
   bot:
     build:
       dockerfile: Dockerfile
