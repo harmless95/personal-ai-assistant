@@ -111,6 +111,13 @@ class DaySummaryConfig(BaseModel):
     provider: str = "openai"
 
 
+class KnowledgeConfig(BaseModel):
+    enabled: bool = True
+    grpc_target: str = "localhost:50051"
+    top_k: int = 3
+    timeout_seconds: float = 5.0
+
+
 class TelegramConfig(BaseModel):
     bot_token: SecretStr = SecretStr("")
     api_base_url: str = "http://127.0.0.1:8000"
@@ -130,6 +137,7 @@ class Settings(BaseSettings):
     auth_jwt: AuthJWTConfig = AuthJWTConfig()
     openai: OpenAIConfig = OpenAIConfig()
     day_summary: DaySummaryConfig = DaySummaryConfig()
+    knowledge: KnowledgeConfig = KnowledgeConfig()
     telegram: TelegramConfig = TelegramConfig()
     redis: RedisConfig = RedisConfig()
     taskiq: TaskiqConfig = TaskiqConfig()

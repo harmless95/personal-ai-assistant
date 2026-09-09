@@ -81,12 +81,16 @@ services:
     container_name: personal_ai_worker
     entrypoint: taskiq worker app.tasks.broker_taskiq:broker
     environment:
+      - PYTHONPATH=/app
       - DB__POSTGRES_HOST=${DB__POSTGRES_HOST:-db}
       - DB__POSTGRES_USER=${DB__POSTGRES_USER:-postgres}
       - DB__POSTGRES_PASSWORD=${DB__POSTGRES_PASSWORD:-secret}
       - DB__POSTGRES_DB=${DB__POSTGRES_DB:-postgres}
       - DB__POSTGRES_PORT=${DB__POSTGRES_PORT:-5432}
       - REDIS__HOST=${REDIS__HOST:-redis}
+      - KNOWLEDGE__ENABLED=${KNOWLEDGE__ENABLED:-true}
+      - KNOWLEDGE__GRPC_TARGET=knowledge:50051
+      - KNOWLEDGE__TOP_K=${KNOWLEDGE__TOP_K:-3}
     env_file:
       - path: .env
         required: false
@@ -96,6 +100,8 @@ services:
       db:
         condition: service_healthy
       backend:
+        condition: service_started
+      knowledge:
         condition: service_started
 
   knowledge:
