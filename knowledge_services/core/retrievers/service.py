@@ -1,6 +1,6 @@
-from knowledge_services import KnowledgeChunk
 from knowledge_services.core.data.repository import KnowledgeChunkRepository
 from knowledge_services.core.embeddings.protocol import Embedder
+from knowledge_services.db.models import KnowledgeChunk
 
 
 class RetrieverService:

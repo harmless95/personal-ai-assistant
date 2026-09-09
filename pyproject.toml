@@ -57,7 +57,10 @@ known-first-party = ["app", "knowledge_services"]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
-exclude = ["knowledge_services/grpc_gen/"]
+
+[[tool.mypy.overrides]]
+module = "knowledge_services.grpc_gen.*"
+ignore_errors = true
 
 [tool.pytest.ini_options]
 addopts = "--cov=app --cov=knowledge_services --cov-report=term-missing"

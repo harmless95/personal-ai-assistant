@@ -1,16 +1,16 @@
 import grpc
-from knowledge.v1 import knowledge_pb2, knowledge_pb2_grpc
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from knowledge_services import KnowledgeChunk
 from knowledge_services.core.data.repository import KnowledgeChunkRepository
 from knowledge_services.core.embeddings.protocol import Embedder
 from knowledge_services.core.ingest.service import IngestService
 from knowledge_services.core.retrievers.service import RetrieverService
+from knowledge_services.db.models import KnowledgeChunk
 from knowledge_services.db.session import session_scope
+from knowledge_services.grpc_gen.knowledge.v1 import knowledge_pb2, knowledge_pb2_grpc
 
 
-class KnowledgeServicer(knowledge_pb2_grpc.KnowledgeServiceServicer):  # type: ignore[misc]
+class KnowledgeServicer(knowledge_pb2_grpc.KnowledgeServiceServicer):
     def __init__(
         self,
         *,

@@ -1,9 +1,9 @@
 from typing import Any
 
-from knowledge_services import KnowledgeChunk
 from knowledge_services.core.data.repository import KnowledgeChunkRepository
 from knowledge_services.core.embeddings.protocol import Embedder
 from knowledge_services.core.ingest.chunking import split_text
+from knowledge_services.db.models import KnowledgeChunk
 
 
 class IngestService:

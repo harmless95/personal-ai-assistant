@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from knowledge_services import KnowledgeChunk
+from knowledge_services.db.models import KnowledgeChunk
 
 
 class KnowledgeChunkRepository:

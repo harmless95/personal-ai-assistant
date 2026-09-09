@@ -4,9 +4,9 @@ from uuid import uuid4
 
 import pytest
 
-from knowledge_services import KnowledgeChunk
 from knowledge_services.core.ingest.service import IngestService
 from knowledge_services.db.constants import EMBEDDING_DIMENSIONS
+from knowledge_services.db.models import KnowledgeChunk
 from knowledge_services.tests.fakes import FakeEmbedder
 
 
