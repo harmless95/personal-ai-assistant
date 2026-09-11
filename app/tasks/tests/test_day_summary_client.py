@@ -8,9 +8,11 @@ from pydantic import SecretStr
 from app.api.daily_checkin.models.daily import ArtifactSource, QuestionCategory
 from app.config import settings
 from app.db import DailyQuestion
+from app.tasks.components.clients.ollama import OllamaDaySummaryClient
 from app.tasks.components.clients.openai import OpenAIDaySummaryClient
 from app.tasks.components.clients.template import TemplateDaySummaryClient
 from app.tasks.components.models.day_summary import DaySummaryLlmOutcome
+from app.tasks.components.providers import DaySummaryProvider
 
 
 def _questions() -> list[DailyQuestion]:
@@ -164,3 +166,20 @@ async def test_openai_client_falls_back_on_api_error(monkeypatch: pytest.MonkeyP
     assert "Too many meetings" in result.response.day_summary
     assert result.metrics.outcome is DaySummaryLlmOutcome.REQUEST_FAILED
     assert result.metrics.latency_ms is not None
+
+
+def test_ollama_client_uses_openai_compatible_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings.ollama_llm, "enabled", True)
+    monkeypatch.setattr(settings.ollama_llm, "base_url", "http://localhost:11434/v1")
+    monkeypatch.setattr(settings.ollama_llm, "model", "llama3.2")
+    monkeypatch.setattr(settings.ollama_llm, "api_key", SecretStr("ollama"))
+
+    with patch("app.tasks.components.clients.openai_compatible.AsyncOpenAI") as mock_openai:
+        client = OllamaDaySummaryClient()
+
+    mock_openai.assert_called_once()
+    kwargs = mock_openai.call_args.kwargs
+    assert kwargs["base_url"] == "http://localhost:11434/v1"
+    assert kwargs["api_key"] == "ollama"
+    assert client._provider == DaySummaryProvider.OLLAMA.value
+    assert client._model == "llama3.2"

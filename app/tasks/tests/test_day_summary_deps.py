@@ -15,6 +15,13 @@ def test_get_summary_client_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     assert get_summary_client(DaySummaryProvider.OPENAI) is client
 
 
+def test_get_summary_client_ollama(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = Mock()
+    monkeypatch.setitem(deps._CLIENT_FACTORIES, DaySummaryProvider.OLLAMA, lambda: client)
+
+    assert get_summary_client(DaySummaryProvider.OLLAMA) is client
+
+
 def test_get_summary_client_template(monkeypatch: pytest.MonkeyPatch) -> None:
     client = Mock()
     monkeypatch.setitem(deps._CLIENT_FACTORIES, DaySummaryProvider.TEMPLATE, lambda: client)

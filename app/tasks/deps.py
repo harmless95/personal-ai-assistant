@@ -9,6 +9,7 @@ from app.config import settings
 from app.db.session import session_getter
 from app.knowledge import KnowledgeGrpcClient, get_knowledge_client
 from app.tasks.components.clients.base import DaySummaryClient
+from app.tasks.components.clients.ollama import OllamaDaySummaryClient
 from app.tasks.components.clients.openai import OpenAIDaySummaryClient
 from app.tasks.components.clients.template import TemplateDaySummaryClient
 from app.tasks.components.providers import DaySummaryProvider
@@ -18,6 +19,7 @@ SessionDep = Annotated[AsyncSession, TaskiqDepends(session_getter)]
 
 _CLIENT_FACTORIES: dict[DaySummaryProvider, Callable[[], DaySummaryClient]] = {
     DaySummaryProvider.OPENAI: OpenAIDaySummaryClient,
+    DaySummaryProvider.OLLAMA: OllamaDaySummaryClient,
     DaySummaryProvider.TEMPLATE: TemplateDaySummaryClient,
 }
 

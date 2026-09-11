@@ -77,6 +77,18 @@ class OpenAIConfig(BaseModel):
     output_price_per_1m_tokens: float = 1.60
 
 
+class OllamaLlmConfig(BaseModel):
+    """OpenAI-compatible chat API exposed by Ollama (/v1)."""
+
+    base_url: str = "http://localhost:11434/v1"
+    api_key: SecretStr = SecretStr("ollama")
+    model: str = "llama3.2"
+    max_completion_tokens: int = 1024
+    enabled: bool = True
+    input_price_per_1m_tokens: float = 0.0
+    output_price_per_1m_tokens: float = 0.0
+
+
 class RedisConfig(BaseModel):
     url: SecretStr | None = None
     host: str = "localhost"
@@ -136,6 +148,7 @@ class Settings(BaseSettings):
     staging: StagingConfig = StagingConfig()
     auth_jwt: AuthJWTConfig = AuthJWTConfig()
     openai: OpenAIConfig = OpenAIConfig()
+    ollama_llm: OllamaLlmConfig = OllamaLlmConfig()
     day_summary: DaySummaryConfig = DaySummaryConfig()
     knowledge: KnowledgeConfig = KnowledgeConfig()
     telegram: TelegramConfig = TelegramConfig()

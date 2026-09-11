@@ -91,6 +91,7 @@ services:
       - KNOWLEDGE__ENABLED=${KNOWLEDGE__ENABLED:-true}
       - KNOWLEDGE__GRPC_TARGET=knowledge:50051
       - KNOWLEDGE__TOP_K=${KNOWLEDGE__TOP_K:-3}
+      - OLLAMA_LLM__BASE_URL=${OLLAMA_LLM__BASE_URL:-http://host.docker.internal:11434/v1}
     env_file:
       - path: .env
         required: false
