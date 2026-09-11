@@ -125,7 +125,7 @@ async def test_openai_client_uses_llm_payload(monkeypatch: pytest.MonkeyPatch) -
     fake_client = MagicMock()
     fake_client.chat.completions.create = AsyncMock(return_value=completion)
 
-    with patch("app.tasks.components.clients.openai_compatible.AsyncOpenAI", return_value=fake_client):
+    with patch("app.tasks.components.clients.chat_completions.AsyncOpenAI", return_value=fake_client):
         client = OpenAIDaySummaryClient()
         result = await client.build(
             checkin_id=uuid4(),
@@ -154,7 +154,7 @@ async def test_openai_client_falls_back_on_api_error(monkeypatch: pytest.MonkeyP
     fake_client = MagicMock()
     fake_client.chat.completions.create = AsyncMock(side_effect=OpenAIError("boom"))
 
-    with patch("app.tasks.components.clients.openai_compatible.AsyncOpenAI", return_value=fake_client):
+    with patch("app.tasks.components.clients.chat_completions.AsyncOpenAI", return_value=fake_client):
         client = OpenAIDaySummaryClient()
         result = await client.build(
             checkin_id=uuid4(),
@@ -168,13 +168,13 @@ async def test_openai_client_falls_back_on_api_error(monkeypatch: pytest.MonkeyP
     assert result.metrics.latency_ms is not None
 
 
-def test_ollama_client_uses_openai_compatible_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ollama_client_uses_chat_completions_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.ollama_llm, "enabled", True)
     monkeypatch.setattr(settings.ollama_llm, "base_url", "http://localhost:11434/v1")
     monkeypatch.setattr(settings.ollama_llm, "model", "llama3.2")
     monkeypatch.setattr(settings.ollama_llm, "api_key", SecretStr("ollama"))
 
-    with patch("app.tasks.components.clients.openai_compatible.AsyncOpenAI") as mock_openai:
+    with patch("app.tasks.components.clients.chat_completions.AsyncOpenAI") as mock_openai:
         client = OllamaDaySummaryClient()
 
     mock_openai.assert_called_once()

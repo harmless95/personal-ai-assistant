@@ -43,8 +43,8 @@ class LlmDaySummaryPayload(BaseModel):
         return value
 
 
-class OpenAICompatibleDaySummaryClient(DaySummaryClient):
-    """Shared chat-completions client for OpenAI and OpenAI-compatible APIs."""
+class ChatCompletionsDaySummaryClient(DaySummaryClient):
+    """Shared chat-completions client for OpenAI, Ollama, and similar APIs."""
 
     def __init__(
         self,

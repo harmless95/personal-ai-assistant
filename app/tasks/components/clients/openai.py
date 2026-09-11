@@ -1,9 +1,9 @@
 from app.config import settings
-from app.tasks.components.clients.openai_compatible import OpenAICompatibleDaySummaryClient
+from app.tasks.components.clients.chat_completions import ChatCompletionsDaySummaryClient
 from app.tasks.components.providers import DaySummaryProvider
 
 
-class OpenAIDaySummaryClient(OpenAICompatibleDaySummaryClient):
+class OpenAIDaySummaryClient(ChatCompletionsDaySummaryClient):
     def __init__(self) -> None:
         api_key = settings.openai.api_key.get_secret_value().strip()
         super().__init__(

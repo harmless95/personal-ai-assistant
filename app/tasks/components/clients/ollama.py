@@ -1,10 +1,10 @@
 from app.config import settings
-from app.tasks.components.clients.openai_compatible import OpenAICompatibleDaySummaryClient
+from app.tasks.components.clients.chat_completions import ChatCompletionsDaySummaryClient
 from app.tasks.components.providers import DaySummaryProvider
 
 
-class OllamaDaySummaryClient(OpenAICompatibleDaySummaryClient):
-    """Day summary via Ollama's OpenAI-compatible /v1 API."""
+class OllamaDaySummaryClient(ChatCompletionsDaySummaryClient):
+    """Day summary via Ollama's chat-completions /v1 API."""
 
     def __init__(self) -> None:
         cfg = settings.ollama_llm

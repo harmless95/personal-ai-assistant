@@ -120,7 +120,7 @@ class TaskiqConfig(BaseModel):
 
 
 class DaySummaryConfig(BaseModel):
-    provider: str = "openai"
+    provider: str = "ollama"
 
 
 class KnowledgeConfig(BaseModel):
