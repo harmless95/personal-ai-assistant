@@ -130,6 +130,18 @@ class KnowledgeConfig(BaseModel):
     timeout_seconds: float = 5.0
 
 
+class S3Config(BaseModel):
+    """S3-compatible object storage (AWS S3 or local MinIO)."""
+
+    endpoint_url: str = "http://localhost:9000"
+    access_key: SecretStr = SecretStr("minioadmin")
+    secret_key: SecretStr = SecretStr("minioadmin")
+    bucket: str = "knowledge"
+    region: str = "us-east-1"
+    # Path-style addressing is required for MinIO.
+    force_path_style: bool = True
+
+
 class TelegramConfig(BaseModel):
     bot_token: SecretStr = SecretStr("")
     api_base_url: str = "http://127.0.0.1:8000"
@@ -151,6 +163,7 @@ class Settings(BaseSettings):
     ollama_llm: OllamaLlmConfig = OllamaLlmConfig()
     day_summary: DaySummaryConfig = DaySummaryConfig()
     knowledge: KnowledgeConfig = KnowledgeConfig()
+    s3: S3Config = S3Config()
     telegram: TelegramConfig = TelegramConfig()
     redis: RedisConfig = RedisConfig()
     taskiq: TaskiqConfig = TaskiqConfig()

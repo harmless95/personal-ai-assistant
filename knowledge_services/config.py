@@ -52,6 +52,17 @@ class RAGConfig(BaseModel):
     chunk_overlap: int = 100
 
 
+class S3Config(BaseModel):
+
+    endpoint_url: str = "http://localhost:9000"
+    access_key: SecretStr = SecretStr("minioadmin")
+    secret_key: SecretStr = SecretStr("minioadmin")
+    bucket: str = "knowledge"
+    region: str = "us-east-1"
+    # Path-style addressing is required for MinIO.
+    force_path_style: bool = True
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
@@ -62,6 +73,7 @@ class Settings(BaseSettings):
     run: RunAppConfig = RunAppConfig()
     db: DbConfig = DbConfig()
     rag: RAGConfig = RAGConfig()
+    s3: S3Config = S3Config()
 
 
 settings = Settings()
