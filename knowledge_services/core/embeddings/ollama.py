@@ -22,15 +22,23 @@ class OllamaEmbedder:
         await self._client.aclose()
 
     async def embed(self, text: str) -> list[float]:
-        response = await self._client.post(
-            "/api/embeddings",
-            json={"model": self._model, "prompt": text},
-        )
-        response.raise_for_status()
-        embedding = response.json()["embedding"]
-        if len(embedding) != EMBEDDING_DIMENSIONS:
-            raise ValueError(f"expected {EMBEDDING_DIMENSIONS} dims, got {len(embedding)}")
-        return list(embedding)
+        vectors = await self.embed_many([text])
+        return vectors[0]
 
     async def embed_many(self, texts: Sequence[str]) -> list[list[float]]:
-        return [await self.embed(text) for text in texts]
+        if not texts:
+            return []
+        response = await self._client.post(
+            "/api/embed",
+            json={"model": self._model, "input": list(texts)},
+        )
+        response.raise_for_status()
+        embeddings = response.json()["embeddings"]
+        if len(embeddings) != len(texts):
+            raise ValueError(f"expected {len(texts)} embeddings, got {len(embeddings)}")
+        result: list[list[float]] = []
+        for embedding in embeddings:
+            if len(embedding) != EMBEDDING_DIMENSIONS:
+                raise ValueError(f"expected {EMBEDDING_DIMENSIONS} dims, got {len(embedding)}")
+            result.append(list(embedding))
+        return result
