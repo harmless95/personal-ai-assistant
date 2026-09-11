@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,27 +10,10 @@ class KnowledgeChunkRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.__session = session
 
-    async def add_chunk(
-        self,
-        *,
-        source: str,
-        chunk_index: int,
-        text: str,
-        embedding: list[float],
-        tags: list[str] | None = None,
-        meta: dict[str, Any] | None = None,
-    ) -> KnowledgeChunk:
-        chunk = KnowledgeChunk(
-            source=source,
-            chunk_index=chunk_index,
-            text=text,
-            embedding=embedding,
-            tags=tags or [],
-            meta=meta or {},
-        )
-        self.__session.add(chunk)
+    async def add_chunks(self, chunks: Sequence[KnowledgeChunk]) -> list[KnowledgeChunk]:
+        self.__session.add_all(chunks)
         await self.__session.flush()
-        return chunk
+        return list(chunks)
 
     async def search_by_embedding(
         self,

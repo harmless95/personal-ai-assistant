@@ -30,15 +30,15 @@ class IngestService:
 
         vectors = await self._embedder.embed_many(pieces)
 
-        saved: list[KnowledgeChunk] = []
-        for index, (piece, vector) in enumerate(zip(pieces, vectors, strict=True), start=1):
-            chunk = await self._repository.add_chunk(
+        chunks = [
+            KnowledgeChunk(
                 source=source,
-                chunk_index=index,
+                chunk_index=i,
                 text=piece,
                 embedding=vector,
-                tags=tags,
-                meta=meta,
+                tags=tags or [],
+                meta=meta or {},
             )
-            saved.append(chunk)
-        return saved
+            for i, (piece, vector) in enumerate(zip(pieces, vectors, strict=True), start=1)
+        ]
+        return await self._repository.add_chunks(chunks)
