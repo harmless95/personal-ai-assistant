@@ -1,5 +1,6 @@
 from collections.abc import Mapping, Sequence
 from time import perf_counter
+from typing import Any, Literal
 from uuid import UUID
 
 import structlog
@@ -84,18 +85,14 @@ class ChatCompletionsDaySummaryClient(DaySummaryClient):
             answers_by_category=dict(answers_by_category),
         )
         if not self._enabled or self._client is None:
-            metrics = DaySummaryUsageMetrics(
+            return self._fallback_result(
+                fallback=fallback,
+                checkin_id=checkin_id,
                 outcome=DaySummaryLlmOutcome.SKIPPED,
-                provider=self._provider,
-                model=self._model,
-            )
-            logger.info(
-                "day_summary_llm_skipped",
-                checkin_id=str(checkin_id),
+                event="day_summary_llm_skipped",
+                level="info",
                 reason="disabled_or_missing_config",
-                **metrics.as_log_fields(),
             )
-            return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE, metrics=metrics)
 
         user_prompt = self._build_user_prompt(
             questions,
@@ -104,28 +101,16 @@ class ChatCompletionsDaySummaryClient(DaySummaryClient):
         )
         started_at = perf_counter()
         try:
-            chat_completion = await self._client.chat.completions.create(
-                model=self._model,
-                temperature=0.3,
-                response_format={"type": "json_object"},
-                max_completion_tokens=self._max_completion_tokens,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-            )
+            chat_completion = await self._create_chat_completion(user_prompt)
         except OpenAIError:
-            metrics = self._build_metrics(
+            return self._fallback_result(
+                fallback=fallback,
+                checkin_id=checkin_id,
                 outcome=DaySummaryLlmOutcome.REQUEST_FAILED,
+                event="day_summary_llm_request_failed",
+                exc_info=True,
                 latency_ms=(perf_counter() - started_at) * 1000,
             )
-            logger.warning(
-                "day_summary_llm_request_failed",
-                checkin_id=str(checkin_id),
-                exc_info=True,
-                **metrics.as_log_fields(),
-            )
-            return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE, metrics=metrics)
 
         latency_ms = (perf_counter() - started_at) * 1000
         prompt_tokens, completion_tokens, total_tokens = extract_token_usage(chat_completion)
@@ -135,51 +120,37 @@ class ChatCompletionsDaySummaryClient(DaySummaryClient):
             input_price_per_1m_tokens=self._input_price_per_1m_tokens,
             output_price_per_1m_tokens=self._output_price_per_1m_tokens,
         )
+        usage_kwargs: dict[str, Any] = {
+            "latency_ms": latency_ms,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+            "estimated_cost_usd": estimated_cost_usd,
+        }
 
         content = chat_completion.choices[0].message.content
         if not content:
-            metrics = self._build_metrics(
+            return self._fallback_result(
+                fallback=fallback,
+                checkin_id=checkin_id,
                 outcome=DaySummaryLlmOutcome.EMPTY_RESPONSE,
-                latency_ms=latency_ms,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-                total_tokens=total_tokens,
-                estimated_cost_usd=estimated_cost_usd,
+                event="day_summary_llm_empty_response",
+                **usage_kwargs,
             )
-            logger.warning(
-                "day_summary_llm_empty_response",
-                checkin_id=str(checkin_id),
-                **metrics.as_log_fields(),
-            )
-            return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE, metrics=metrics)
 
         try:
             payload = LlmDaySummaryPayload.model_validate_json(content)
         except ValidationError:
-            metrics = self._build_metrics(
+            return self._fallback_result(
+                fallback=fallback,
+                checkin_id=checkin_id,
                 outcome=DaySummaryLlmOutcome.INVALID_PAYLOAD,
-                latency_ms=latency_ms,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-                total_tokens=total_tokens,
-                estimated_cost_usd=estimated_cost_usd,
-            )
-            logger.warning(
-                "day_summary_llm_invalid_payload",
-                checkin_id=str(checkin_id),
+                event="day_summary_llm_invalid_payload",
                 exc_info=True,
-                **metrics.as_log_fields(),
+                **usage_kwargs,
             )
-            return DaySummaryBuildResult(response=fallback, source=ArtifactSource.TEMPLATE, metrics=metrics)
 
-        metrics = self._build_metrics(
-            outcome=DaySummaryLlmOutcome.LLM_OK,
-            latency_ms=latency_ms,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-            estimated_cost_usd=estimated_cost_usd,
-        )
+        metrics = self._build_metrics(outcome=DaySummaryLlmOutcome.LLM_OK, **usage_kwargs)
         logger.info(
             "day_summary_llm_ok",
             checkin_id=str(checkin_id),
@@ -194,6 +165,59 @@ class ChatCompletionsDaySummaryClient(DaySummaryClient):
                 recommended_actions=payload.recommended_actions,
             ),
             source=ArtifactSource.LLM,
+            metrics=metrics,
+        )
+
+    async def _create_chat_completion(self, user_prompt: str) -> Any:
+        assert self._client is not None
+        return await self._client.chat.completions.create(
+            model=self._model,
+            temperature=0.3,
+            response_format={"type": "json_object"},
+            max_completion_tokens=self._max_completion_tokens,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+
+    def _fallback_result(
+        self,
+        *,
+        fallback: AnswerCheckinResponse,
+        checkin_id: UUID,
+        outcome: DaySummaryLlmOutcome,
+        event: str,
+        level: Literal["info", "warning"] = "warning",
+        exc_info: bool = False,
+        reason: str | None = None,
+        latency_ms: float | None = None,
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        total_tokens: int | None = None,
+        estimated_cost_usd: float | None = None,
+    ) -> DaySummaryBuildResult:
+        metrics = self._build_metrics(
+            outcome=outcome,
+            latency_ms=latency_ms,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            estimated_cost_usd=estimated_cost_usd,
+        )
+        log_method = logger.info if level == "info" else logger.warning
+        log_kwargs: dict[str, Any] = {
+            "checkin_id": str(checkin_id),
+            **metrics.as_log_fields(),
+        }
+        if reason is not None:
+            log_kwargs["reason"] = reason
+        if exc_info:
+            log_kwargs["exc_info"] = True
+        log_method(event, **log_kwargs)
+        return DaySummaryBuildResult(
+            response=fallback,
+            source=ArtifactSource.TEMPLATE,
             metrics=metrics,
         )
 
