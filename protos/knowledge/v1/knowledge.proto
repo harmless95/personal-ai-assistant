@@ -5,6 +5,7 @@ service KnowledgeService {
   rpc Health(HealthRequest) returns (HealthResponse);
   rpc Search(SearchRequest) returns (SearchResponse);
   rpc IngestText(IngestTextRequest) returns (IngestTextResponse);
+  rpc IngestFile(IngestFileRequest) returns (IngestFileResponse);
 }
 
 message HealthRequest {}
@@ -32,3 +33,15 @@ message IngestTextRequest {
 }
 
 message IngestTextResponse { int32 chunks_saved = 1; }
+
+message IngestFileRequest {
+  bytes content = 1;
+  string source = 2;
+  string content_type = 3;
+  repeated string tags = 4;
+}
+
+message IngestFileResponse {
+  int32 chunks_saved = 1;
+  string s3_key = 2;
+}

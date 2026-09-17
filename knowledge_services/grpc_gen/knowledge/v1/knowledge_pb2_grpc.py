@@ -49,6 +49,11 @@ class KnowledgeServiceStub:
                 request_serializer=knowledge_dot_v1_dot_knowledge__pb2.IngestTextRequest.SerializeToString,
                 response_deserializer=knowledge_dot_v1_dot_knowledge__pb2.IngestTextResponse.FromString,
                 _registered_method=True)
+        self.IngestFile = channel.unary_unary(
+                '/knowledge.v1.KnowledgeService/IngestFile',
+                request_serializer=knowledge_dot_v1_dot_knowledge__pb2.IngestFileRequest.SerializeToString,
+                response_deserializer=knowledge_dot_v1_dot_knowledge__pb2.IngestFileResponse.FromString,
+                _registered_method=True)
 
 
 class KnowledgeServiceServicer:
@@ -72,6 +77,12 @@ class KnowledgeServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def IngestFile(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_KnowledgeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -89,6 +100,11 @@ def add_KnowledgeServiceServicer_to_server(servicer, server):
                     servicer.IngestText,
                     request_deserializer=knowledge_dot_v1_dot_knowledge__pb2.IngestTextRequest.FromString,
                     response_serializer=knowledge_dot_v1_dot_knowledge__pb2.IngestTextResponse.SerializeToString,
+            ),
+            'IngestFile': grpc.unary_unary_rpc_method_handler(
+                    servicer.IngestFile,
+                    request_deserializer=knowledge_dot_v1_dot_knowledge__pb2.IngestFileRequest.FromString,
+                    response_serializer=knowledge_dot_v1_dot_knowledge__pb2.IngestFileResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -172,6 +188,33 @@ class KnowledgeService:
             '/knowledge.v1.KnowledgeService/IngestText',
             knowledge_dot_v1_dot_knowledge__pb2.IngestTextRequest.SerializeToString,
             knowledge_dot_v1_dot_knowledge__pb2.IngestTextResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def IngestFile(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/knowledge.v1.KnowledgeService/IngestFile',
+            knowledge_dot_v1_dot_knowledge__pb2.IngestFileRequest.SerializeToString,
+            knowledge_dot_v1_dot_knowledge__pb2.IngestFileResponse.FromString,
             options,
             channel_credentials,
             insecure,

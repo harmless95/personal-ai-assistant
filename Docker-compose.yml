@@ -121,6 +121,12 @@ services:
       - RUN__GRPC_PORT=${RUN__GRPC_PORT:-50051}
       - RAG__OLLAMA_BASE_URL=http://host.docker.internal:11434
       - RAG__EMBED_MODEL=${RAG__EMBED_MODEL:-nomic-embed-text}
+      - S3__ENDPOINT_URL=${S3__ENDPOINT_URL:-http://minio:9000}
+      - S3__ACCESS_KEY=${S3__ACCESS_KEY:-minioadmin}
+      - S3__SECRET_KEY=${S3__SECRET_KEY:-minioadmin}
+      - S3__BUCKET=${S3__BUCKET:-knowledge}
+      - S3__REGION=${S3__REGION:-us-east-1}
+      - S3__FORCE_PATH_STYLE=${S3__FORCE_PATH_STYLE:-true}
     env_file:
       - path: .env
         required: false
@@ -133,6 +139,8 @@ services:
         condition: service_completed_successfully
       db:
         condition: service_healthy
+      minio:
+        condition: service_started
 
   bot:
     build:

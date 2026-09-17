@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cknowledge/v1/knowledge.proto\x12\x0cknowledge.v1\"\x0f\n\rHealthRequest\"\x1c\n\x0eHealthResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\"-\n\rSearchRequest\x12\r\n\x05query\x18\x01 \x01(\t\x12\r\n\x05top_k\x18\x02 \x01(\x05\"Z\n\x05\x43hunk\x12\x10\n\x08\x63hunk_id\x18\x01 \x01(\t\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x13\n\x0b\x63hunk_index\x18\x03 \x01(\x05\x12\x0c\n\x04text\x18\x04 \x01(\t\x12\x0c\n\x04tags\x18\x05 \x03(\t\"5\n\x0eSearchResponse\x12#\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\x13.knowledge.v1.Chunk\"?\n\x11IngestTextRequest\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x0c\n\x04tags\x18\x03 \x03(\t\"*\n\x12IngestTextResponse\x12\x14\n\x0c\x63hunks_saved\x18\x01 \x01(\x05\x32\xed\x01\n\x10KnowledgeService\x12\x43\n\x06Health\x12\x1b.knowledge.v1.HealthRequest\x1a\x1c.knowledge.v1.HealthResponse\x12\x43\n\x06Search\x12\x1b.knowledge.v1.SearchRequest\x1a\x1c.knowledge.v1.SearchResponse\x12O\n\nIngestText\x12\x1f.knowledge.v1.IngestTextRequest\x1a .knowledge.v1.IngestTextResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cknowledge/v1/knowledge.proto\x12\x0cknowledge.v1\"\x0f\n\rHealthRequest\"\x1c\n\x0eHealthResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\"-\n\rSearchRequest\x12\r\n\x05query\x18\x01 \x01(\t\x12\r\n\x05top_k\x18\x02 \x01(\x05\"Z\n\x05\x43hunk\x12\x10\n\x08\x63hunk_id\x18\x01 \x01(\t\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x13\n\x0b\x63hunk_index\x18\x03 \x01(\x05\x12\x0c\n\x04text\x18\x04 \x01(\t\x12\x0c\n\x04tags\x18\x05 \x03(\t\"5\n\x0eSearchResponse\x12#\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\x13.knowledge.v1.Chunk\"?\n\x11IngestTextRequest\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x0c\n\x04tags\x18\x03 \x03(\t\"*\n\x12IngestTextResponse\x12\x14\n\x0c\x63hunks_saved\x18\x01 \x01(\x05\"X\n\x11IngestFileRequest\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\x0c\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x14\n\x0c\x63ontent_type\x18\x03 \x01(\t\x12\x0c\n\x04tags\x18\x04 \x03(\t\":\n\x12IngestFileResponse\x12\x14\n\x0c\x63hunks_saved\x18\x01 \x01(\x05\x12\x0e\n\x06s3_key\x18\x02 \x01(\t2\xbe\x02\n\x10KnowledgeService\x12\x43\n\x06Health\x12\x1b.knowledge.v1.HealthRequest\x1a\x1c.knowledge.v1.HealthResponse\x12\x43\n\x06Search\x12\x1b.knowledge.v1.SearchRequest\x1a\x1c.knowledge.v1.SearchResponse\x12O\n\nIngestText\x12\x1f.knowledge.v1.IngestTextRequest\x1a .knowledge.v1.IngestTextResponse\x12O\n\nIngestFile\x12\x1f.knowledge.v1.IngestFileRequest\x1a .knowledge.v1.IngestFileResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -45,6 +45,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_INGESTTEXTREQUEST']._serialized_end=350
   _globals['_INGESTTEXTRESPONSE']._serialized_start=352
   _globals['_INGESTTEXTRESPONSE']._serialized_end=394
-  _globals['_KNOWLEDGESERVICE']._serialized_start=397
-  _globals['_KNOWLEDGESERVICE']._serialized_end=634
+  _globals['_INGESTFILEREQUEST']._serialized_start=396
+  _globals['_INGESTFILEREQUEST']._serialized_end=484
+  _globals['_INGESTFILERESPONSE']._serialized_start=486
+  _globals['_INGESTFILERESPONSE']._serialized_end=544
+  _globals['_KNOWLEDGESERVICE']._serialized_start=547
+  _globals['_KNOWLEDGESERVICE']._serialized_end=865
 # @@protoc_insertion_point(module_scope)

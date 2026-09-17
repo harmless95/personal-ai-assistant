@@ -3,8 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from knowledge_services.core.data.repository import KnowledgeChunkRepository
 from knowledge_services.core.embeddings.protocol import Embedder
+from knowledge_services.core.ingest.document_service import DocumentIngestService
 from knowledge_services.core.ingest.service import IngestService
 from knowledge_services.core.retrievers.service import RetrieverService
+from knowledge_services.core.storage.s3 import S3ObjectStorage
+from knowledge_services.core.storage.session import s3_client_scope
 from knowledge_services.db.models import KnowledgeChunk
 from knowledge_services.db.session import session_scope
 from knowledge_services.grpc_gen.knowledge.v1 import knowledge_pb2, knowledge_pb2_grpc
@@ -72,6 +75,50 @@ class KnowledgeServicer(knowledge_pb2_grpc.KnowledgeServiceServicer):
                     tags=list(request.tags) or None,
                 )
                 return knowledge_pb2.IngestTextResponse(chunks_saved=len(saved))
+        except Exception as exc:
+            await context.abort(grpc.StatusCode.INTERNAL, str(exc))
+            raise
+
+    async def IngestFile(
+        self,
+        request: knowledge_pb2.IngestFileRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> knowledge_pb2.IngestFileResponse:
+        if not request.content or not request.source.strip():
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                "content and source are required",
+            )
+            raise
+
+        content_type = request.content_type.strip() or "text/plain"
+        try:
+            async with s3_client_scope() as s3_client:
+                async with session_scope(self._session_factory) as session:
+                    documents = DocumentIngestService(
+                        embedder=self._embedder,
+                        repository=KnowledgeChunkRepository(session),
+                        storage=S3ObjectStorage(s3_client),
+                    )
+                    saved, s3_key = await documents.ingest_file(
+                        request.content,
+                        source=request.source,
+                        content_type=content_type,
+                        tags=list(request.tags) or None,
+                    )
+                    return knowledge_pb2.IngestFileResponse(
+                        chunks_saved=len(saved),
+                        s3_key=s3_key,
+                    )
+        except UnicodeDecodeError as exc:
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                f"content is not valid utf-8 text: {exc}",
+            )
+            raise
+        except ValueError as exc:
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+            raise
         except Exception as exc:
             await context.abort(grpc.StatusCode.INTERNAL, str(exc))
             raise

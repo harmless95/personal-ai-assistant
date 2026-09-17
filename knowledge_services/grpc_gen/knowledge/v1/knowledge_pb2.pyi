@@ -59,3 +59,23 @@ class IngestTextResponse(_message.Message):
     CHUNKS_SAVED_FIELD_NUMBER: _ClassVar[int]
     chunks_saved: int
     def __init__(self, chunks_saved: _Optional[int] = ...) -> None: ...
+
+class IngestFileRequest(_message.Message):
+    __slots__ = ("content", "source", "content_type", "tags")
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    TAGS_FIELD_NUMBER: _ClassVar[int]
+    content: bytes
+    source: str
+    content_type: str
+    tags: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, content: _Optional[bytes] = ..., source: _Optional[str] = ..., content_type: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class IngestFileResponse(_message.Message):
+    __slots__ = ("chunks_saved", "s3_key")
+    CHUNKS_SAVED_FIELD_NUMBER: _ClassVar[int]
+    S3_KEY_FIELD_NUMBER: _ClassVar[int]
+    chunks_saved: int
+    s3_key: str
+    def __init__(self, chunks_saved: _Optional[int] = ..., s3_key: _Optional[str] = ...) -> None: ...
