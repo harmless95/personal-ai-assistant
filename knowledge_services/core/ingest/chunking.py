@@ -1,3 +1,5 @@
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from knowledge_services.config import settings
 
 
@@ -18,15 +20,8 @@ def split_text(
     if len(cleaned) <= chunk_size:
         return [cleaned]
 
-    step = chunk_size - chunk_overlap
-    chunks: list[str] = []
-    start = 0
-    while start < len(cleaned):
-        end = start + chunk_size
-        piece = cleaned[start:end].strip()
-        if piece:
-            chunks.append(piece)
-        if end >= len(cleaned):
-            break
-        start += step
-    return chunks
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+    )
+    return splitter.split_text(cleaned)
