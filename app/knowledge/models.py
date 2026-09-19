@@ -8,3 +8,9 @@ class KnowledgeChunkHit:
     chunk_index: int
     text: str
     tags: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class KnowledgeIngestFileResult:
+    chunks_saved: int
+    s3_key: str

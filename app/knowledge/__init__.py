@@ -1,10 +1,12 @@
 from app.config import settings
-from app.knowledge.client import KnowledgeGrpcClient, KnowledgeSearchError
-from app.knowledge.models import KnowledgeChunkHit
+from app.knowledge.client import KnowledgeGrpcClient, KnowledgeIngestError, KnowledgeSearchError
+from app.knowledge.models import KnowledgeChunkHit, KnowledgeIngestFileResult
 
 __all__ = (
     "KnowledgeChunkHit",
     "KnowledgeGrpcClient",
+    "KnowledgeIngestError",
+    "KnowledgeIngestFileResult",
     "KnowledgeSearchError",
     "get_knowledge_client",
 )

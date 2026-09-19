@@ -128,6 +128,7 @@ class KnowledgeConfig(BaseModel):
     grpc_target: str = "localhost:50051"
     top_k: int = 3
     timeout_seconds: float = 5.0
+    max_upload_bytes: int = 10 * 1024 * 1024
 
 
 class S3Config(BaseModel):
